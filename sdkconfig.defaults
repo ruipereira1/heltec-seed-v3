@@ -1,0 +1,71 @@
+# Endurecimento do ESP-IDF para o HELTEC-SEED-V3.
+#
+# Cada linha aqui existe por uma razao de seguranca concreta. Se mexeres em
+# alguma, le primeiro o comentario -- varias impedem que a seed saia da placa.
+
+CONFIG_IDF_TARGET="esp32s3"
+
+# --- radio: nao entra no binario -------------------------------------------
+# Nao e' so "nao ligar": e' nao compilar. O tools/check_no_radio.py falha o
+# build se algum destes simbolos aparecer no ELF final.
+CONFIG_ESP_WIFI_ENABLED=n
+CONFIG_BT_ENABLED=n
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=n
+
+# --- nada de segredos a sair pela UART -------------------------------------
+# O panic handler, por omissao, despeja registos e stack pela consola. Numa
+# maquina onde a seed vive em SRAM, isso e' um dump da seed para o cabo USB.
+CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=y
+CONFIG_ESP_DEBUG_OCDAWARE=n
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=n
+CONFIG_ESP_COREDUMP_ENABLE_TO_UART=n
+CONFIG_ESP_COREDUMP_DECODE_DISABLE=y
+
+# Consola desligada: sem log, sem stub de monitor, sem CDC a enumerar.
+CONFIG_ESP_CONSOLE_NONE=y
+CONFIG_LOG_DEFAULT_LEVEL_NONE=y
+CONFIG_LOG_MAXIMUM_LEVEL_NONE=y
+
+# --- mbedTLS: so o que a geracao precisa -----------------------------------
+# Menos codigo compilado, menos superficie. secp256k1 tem de ficar ligado.
+CONFIG_MBEDTLS_ECP_DP_SECP256K1_ENABLED=y
+CONFIG_MBEDTLS_RIPEMD160_C=y
+CONFIG_MBEDTLS_PKCS5_C=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+CONFIG_MBEDTLS_TLS_DISABLED=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=n
+CONFIG_MBEDTLS_ECDSA_C=n
+# Nao desligar aqui protocolos de TLS um a um: com MBEDTLS_TLS_DISABLED o
+# mbedTLS ja nao compila a stack, e desligar protocolos por cima produz a
+# combinacao invalida "SSL_TLS_C definido mas sem protocolos activos".
+# Quem garante que nao ha rede nenhuma e' o set(COMPONENTS ...) no CMakeLists.
+
+# --- flash ------------------------------------------------------------------
+# O ESP32-S3FN8 do Heltec V3 tem 8MB embutidos (confirmado com esptool:
+# "Embedded Flash 8MB (GD)"). Sem isto o IDF assume 2MB e a particao nao cabe.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+
+# --- nada de armazenamento persistente -------------------------------------
+# A seed nunca e' escrita. Sem NVS e sem SPIFFS nao ha sequer com que a escrever.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# --- FreeRTOS ---------------------------------------------------------------
+# 1000 Hz => 1 tick = 1 ms. Com os 100 Hz por omissao, pdMS_TO_TICKS(5) da ZERO
+# ticks e o vTaskDelay nao bloqueia nem cede o CPU: o laco de leitura dos botoes
+# passava a espera activa, matando a idle task e podendo disparar o watchdog.
+CONFIG_FREERTOS_HZ=1000
+
+# --- stack e memoria --------------------------------------------------------
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+# Aborta em vez de continuar com memoria corrompida.
+CONFIG_COMPILER_STACK_CHECK_MODE_STRONG=y
+CONFIG_HEAP_POISONING_LIGHT=y
+
+# --- USB --------------------------------------------------------------------
+# Nao enumerar durante a cerimonia. Para gravar firmware usa-se o modo de
+# download (segurar PRG durante o reset), que e' explicito e voluntario.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=n
+CONFIG_ESP_CONSOLE_USB_CDC=n

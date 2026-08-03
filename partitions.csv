@@ -1,0 +1,4 @@
+# Sem NVS e sem qualquer particao de dados: nao ha onde escrever uma seed,
+# mesmo que um bug tentasse. E deliberado.
+# Name,   Type, SubType, Offset,  Size
+factory,  app,  factory, 0x10000, 3M

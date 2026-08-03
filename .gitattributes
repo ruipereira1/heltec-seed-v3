@@ -1,0 +1,20 @@
+# Terminacoes de linha fixas.
+#
+# Isto nao e' arrumacao: o projeto promete um build reproduzivel, e ficheiros
+# que mudam de bytes conforme o sistema onde sao levantados nao servem para
+# isso. Duas pessoas em sistemas diferentes tem de obter a mesma arvore.
+#
+# O english.txt e' o caso mais claro -- o SHA256 dele esta fixado em
+# tools/gen_wordlist.py e verificado por uma invariante.
+
+* text=auto eol=lf
+
+# O .bat precisa de CRLF: o cmd.exe engasga-se com ficheiros so com LF.
+*.bat text eol=crlf
+
+# Vetores e wordlist: LF sempre, sao entrada de hashes.
+tools/english.txt text eol=lf
+test/vectors/*.json text eol=lf
+
+*.bin binary
+*.png binary

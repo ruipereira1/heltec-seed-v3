@@ -1,0 +1,20 @@
+# Sobreposicao SO PARA DIAGNOSTICO. Nunca gerar uma seed a serio com isto.
+#
+# Liga a consola pela UART e desliga o reboot silencioso, para se poder ver o
+# que a placa esta a fazer. O firmware normal tem tudo isto desligado de
+# proposito -- um panico imprime registos e stack, e nesta maquina a stack pode
+# conter a seed.
+#
+#   idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.debug" build
+#
+# Depois de diagnosticar, voltar SEMPRE ao build normal antes de usar a serio.
+
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_NONE=n
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL=3
+CONFIG_LOG_MAXIMUM_LEVEL=3
+
+# Queremos VER o panico, com backtrace, em vez de a placa reiniciar sem rasto.
+CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
+CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT=n

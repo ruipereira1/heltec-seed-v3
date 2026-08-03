@@ -1,0 +1,28 @@
+# Artefactos de build
+build/
+build-medicao/
+test/build/
+*.exe
+__pycache__/
+
+# Gerado pelo ESP-IDF a partir de sdkconfig.defaults. Nao entra no repositorio
+# de proposito: se entrasse, um valor mudado a mao sobrevivia sem se ver, e o
+# que define a configuracao passaria a ser um ficheiro de 46 mil linhas em vez
+# das 80 que se conseguem ler.
+sdkconfig
+sdkconfig.old
+
+# Despejos de diagnostico. Nunca de uma cerimonia a serio, mas melhor nao
+# arriscar: com a consola ligada, um destes pode conter mais do que se pensa.
+uart.log
+*.log
+amostras.txt
+lido*.bin
+
+# O mbedTLS e' clonado, nao versionado aqui. O commit exacto esta fixado em
+# third_party/MBEDTLS-PIN.txt e o test_invariantes.py confirma que bate certo.
+#
+# "third_party/*" e nao "third_party/": com a segunda forma o git nem chega a
+# entrar na pasta, e a excepcao abaixo nunca seria vista.
+third_party/*
+!third_party/MBEDTLS-PIN.txt

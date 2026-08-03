@@ -1,0 +1,18 @@
+# Versao exacta do mbedTLS que este projeto usa.
+#
+# O codigo nao esta no repositorio -- e' clonado. Mas "clona a v3.6.2" nao
+# chega: uma tag pode ser movida. O que fixa a dependencia e' o commit.
+#
+# Para obter exactamente esta arvore:
+#
+#   git clone https://github.com/Mbed-TLS/mbedtls third_party/mbedtls
+#   git -C third_party/mbedtls checkout 107ea89daaefb9867ea9121002fbbdf926780e98
+#
+# Ha uma invariante em test/test_invariantes.py que compara o HEAD do clone
+# local com o valor abaixo. Se divergirem, os testes falham -- e assim ninguem
+# gera uma seed com uma biblioteca criptografica diferente da que foi auditada
+# sem dar por isso.
+
+commit  107ea89daaefb9867ea9121002fbbdf926780e98
+tag     v3.6.2
+repo    https://github.com/Mbed-TLS/mbedtls
