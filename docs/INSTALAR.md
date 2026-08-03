@@ -110,6 +110,10 @@ Duas ressalvas honestas:
 
 ## Primeira coisa a fazer depois de gravar
 
+**Imprime primeiro a [folha de cerimónia](folha-de-cerimonia.html)** — abre-a
+num browser e Ctrl+P, A4. É onde vais escrever, e a ordem das secções é a ordem
+dos ecrãs.
+
 **Não gastes lançamentos de dados a sério na primeira cerimónia.** Faz uma de
 teste com uma sequência conhecida e confirma que o resultado bate certo:
 

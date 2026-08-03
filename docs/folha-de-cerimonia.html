@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HELTEC-SEED-V3 - folha de cerimonia</title>
+<!--
+  Folha para imprimir e preencher durante a cerimonia.
+
+  Abre este ficheiro num browser e carrega em Ctrl+P. A4, sem margens extra.
+
+  Nao e' decoracao. Uma folha em branco e' onde os erros de copia nascem: aqui
+  cada quadrado e' um caractere, e as seccoes estao pela ordem da cerimonia --
+  o compromisso e' a seccao 1 e os lancamentos a 2, porque e' essa a ordem que
+  torna a verificacao possivel. Quem preencher de cima para baixo faz a coisa
+  certa sem ter de se lembrar porque.
+-->
+<style>
+
+  :root {
+    color-scheme: light dark;
+    --paper:  #ffffff;
+    --ink:    #14161a;
+    --faint:  #6b7280;
+    --rule:   #14161a;
+    --cell:   #a8adb5;
+    --cellbg: #fbfbfc;
+    --alerta: #8c2f1a;
+    --backdrop: #e7e9ec;
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo,
+            Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+  }
+
+  /* A folha e' papel: fica branca em qualquer tema. O que muda com o tema e'
+     so o fundo por tras dela, como numa pre-visualizacao de impressao. */
+  @media (prefers-color-scheme: dark) { :root { --backdrop: #0e1116; } }
+  :root[data-theme="dark"]  { --backdrop: #0e1116; }
+  :root[data-theme="light"] { --backdrop: #e7e9ec; }
+
+  body {
+    background: var(--backdrop);
+    color: var(--ink);
+    font-family: var(--sans);
+    margin: 0;
+    padding: 24px 16px 64px;
+    line-height: 1.5;
+  }
+
+  .folha {
+    background: var(--paper);
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 16mm 15mm;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .18), 0 8px 28px rgba(0, 0, 0, .10);
+  }
+
+  /* --- cabecalho ------------------------------------------------------ */
+
+  .topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    border-bottom: 2.5px solid var(--rule);
+    padding-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .topo .sub { font-size: 12px; color: var(--faint); margin: 2px 0 0; }
+  .meta {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--faint);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .aviso-topo {
+    border: 1.5px solid var(--alerta);
+    color: var(--alerta);
+    padding: 9px 12px;
+    margin: 14px 0 0;
+    font-size: 12.5px;
+  }
+  .aviso-topo b { font-weight: 700; }
+
+  /* --- seccoes -------------------------------------------------------- */
+
+  section { margin-top: 26px; break-inside: avoid; }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 3px;
+    padding-bottom: 5px;
+    border-bottom: 1.5px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .n {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  h2 .quando {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+    text-transform: none;
+  }
+  .como { font-size: 12.5px; color: var(--faint); margin: 7px 0 11px; }
+  .como strong { color: var(--ink); font-weight: 600; }
+
+  /* --- grelhas de escrita --------------------------------------------- */
+
+  .hexlinha {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+  }
+  .hexlinha .idx {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    width: 12px;
+    text-align: right;
+    color: var(--faint);
+  }
+  .grupo { display: flex; gap: 2px; margin-right: 9px; }
+  .cel {
+    width: 7.2mm;
+    height: 8.4mm;
+    border: 1px solid var(--cell);
+    background: var(--cellbg);
+    border-radius: 1px;
+  }
+
+  .dados { display: flex; flex-direction: column; gap: 3px; }
+  .dadoslinha { display: flex; align-items: center; gap: 6px; }
+  .dadoslinha .idx {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    width: 44px;
+    text-align: right;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .dadoslinha .cel { width: 8.6mm; height: 8.6mm; }
+  .dadoslinha .cel:nth-child(5n + 1) { margin-left: 5px; }
+
+  /* --- palavras ------------------------------------------------------- */
+
+  .palavras {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 20px;
+  }
+  .palavra {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    border-bottom: 1px solid var(--cell);
+    padding-bottom: 3px;
+    height: 8.4mm;
+  }
+  .palavra .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    width: 18px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- opcoes e linhas soltas ------------------------------------------ */
+
+  .opcoes { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 0; }
+  .opcao { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; }
+  .quadrado {
+    width: 4.4mm; height: 4.4mm;
+    border: 1.5px solid var(--ink);
+    flex: none;
+    margin-top: 2px;
+  }
+  .opcao .det { color: var(--faint); font-size: 12px; }
+
+  .campo { margin-top: 12px; }
+  .campo .rot {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .risco { border-bottom: 1px solid var(--cell); height: 8.4mm; }
+
+  /* --- rodape --------------------------------------------------------- */
+
+  .final {
+    margin-top: 30px;
+    border: 2.5px solid var(--alerta);
+    padding: 13px 15px;
+    break-inside: avoid;
+  }
+  .final h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--alerta);
+    margin: 0 0 7px;
+  }
+  .final p { margin: 0 0 7px; font-size: 12.5px; }
+  .final p:last-child { margin-bottom: 0; }
+  .final code {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .quebra { break-before: page; }
+
+  .so-ecra {
+    max-width: 210mm;
+    margin: 0 auto 20px;
+    font-size: 13px;
+    color: var(--faint);
+    background: var(--paper);
+    padding: 14px 15mm;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .15);
+  }
+  .so-ecra b { color: var(--ink); }
+
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    body { background: #fff; padding: 0; }
+    .folha { box-shadow: none; max-width: none; padding: 0; }
+    .so-ecra { display: none; }
+    .cel { background: none; }
+  }
+</style>
+</head>
+<body>
+
+
+<div class="so-ecra">
+  <b>Imprime esta folha antes de começares.</b> Uma folha em branco é onde os
+  erros de cópia nascem: cada quadrado aqui é um carácter, e a ordem das
+  secções é a ordem da cerimónia — o compromisso vem antes dos dados, não
+  depois. Ctrl+P, A4, sem margens extra.
+</div>
+
+<div class="folha">
+
+  <div class="topo">
+    <div>
+      <h1>Folha de cerimónia</h1>
+      <p class="sub">HELTEC-SEED-V3 &middot; gerador de seed BIP39 de 256 bits</p>
+    </div>
+    <div class="meta">
+      data ____ / ____ / ________<br>
+      firmware sha256 97f8f41e…
+    </div>
+  </div>
+
+  <p class="aviso-topo">
+    <b>Esta folha é uma segunda cópia da seed.</b> Quem tiver os lançamentos e o
+    E_chip tem as moedas, e aqui não há o checksum das 24 palavras a proteger de
+    erros. Depois de verificares no PC: ou a destróis, ou a guardas exatamente
+    como guardas as 24 palavras. Não há meio termo.
+  </p>
+
+  <!-- 1 --------------------------------------------------------------- -->
+  <section>
+    <h2><span class="n">1</span> Compromisso do chip
+      <span class="quando">antes de tocares nos dados</span></h2>
+    <p class="como">
+      O aparelho fecha a metade dele <strong>antes</strong> de veres o quê que
+      sai nos dados, e mostra este valor. É ele que impede o chip de escolher a
+      seed depois de ver os teus lançamentos — e só vale se estiver escrito
+      <strong>agora</strong>. Um carácter por quadrado.
+    </p>
+    <div id="hex-commit"></div>
+  </section>
+
+  <!-- 2 --------------------------------------------------------------- -->
+  <section>
+    <h2><span class="n">2</span> Os 100 lançamentos
+      <span class="quando">um a um, à medida que os fazes</span></h2>
+    <p class="como">
+      O ecrã mostra só o resumo, nunca os lançamentos. <strong>Sem esta
+      sequência não há verificação nenhuma</strong> — escreve cada valor aqui
+      assim que o introduzes, não no fim.
+    </p>
+    <div class="dados" id="grelha-dados"></div>
+  </section>
+
+  <!-- 3 --------------------------------------------------------------- -->
+  <section class="quebra">
+    <h2><span class="n">3</span> E_chip revelado
+      <span class="quando">depois dos lançamentos</span></h2>
+    <p class="como">
+      Agora o aparelho mostra a metade dele em claro. O verificador confirma que
+      o resumo deste valor dá exatamente o que escreveste na secção 1.
+      <strong>Se não der, para.</strong>
+    </p>
+    <div id="hex-chip"></div>
+  </section>
+
+  <!-- 4 --------------------------------------------------------------- -->
+  <section>
+    <h2><span class="n">4</span> As 24 palavras da seed</h2>
+    <p class="como">
+      Para papel ou metal. <strong>Nunca para o telemóvel.</strong> O aparelho
+      faz-te três perguntas a seguir, para confirmar que copiaste mesmo.
+    </p>
+    <div class="palavras" id="palavras-seed"></div>
+  </section>
+
+  <!-- 5 --------------------------------------------------------------- -->
+  <section class="quebra">
+    <h2><span class="n">5</span> Passphrase</h2>
+    <p class="como">Marca a que escolheste no aparelho.</p>
+    <div class="opcoes">
+      <div class="opcao"><span class="quadrado"></span>
+        <span><b>Sem passphrase.</b>
+          <span class="det">As 24 palavras são tudo.</span></span></div>
+      <div class="opcao"><span class="quadrado"></span>
+        <span><b>Gerada pelo aparelho</b> — 24 palavras, de uma segunda ronda.
+          <span class="det">Escreve-as abaixo e guarda-as
+          <b>noutro sítio</b>, longe das 24 da seed.</span></span></div>
+      <div class="opcao"><span class="quadrado"></span>
+        <span><b>Escrita por mim.</b>
+          <span class="det">Não a escrevas aqui: esta folha já tem a seed.
+          Guarda-a separada, e confere-a pelo fingerprint.</span></span></div>
+    </div>
+    <div style="margin-top:14px" class="palavras" id="palavras-pass"></div>
+  </section>
+
+  <!-- 6 --------------------------------------------------------------- -->
+  <section>
+    <h2><span class="n">6</span> O que tem de bater certo no Sparrow</h2>
+    <p class="como">
+      Estes dois são a prova final. Restauras as 24 palavras e a passphrase num
+      Sparrow <strong>sem internet</strong> e comparas.
+    </p>
+    <div class="campo">
+      <div class="rot">Fingerprint mestre (8 caracteres)</div>
+      <div class="hexlinha" style="margin-top:5px">
+        <div class="grupo" id="fp"></div>
+      </div>
+    </div>
+    <div class="campo">
+      <div class="rot">Primeiro endereço &nbsp;m/84'/0'/0'/0/0</div>
+      <div class="risco"></div>
+    </div>
+  </section>
+
+  <div class="final">
+    <h3>Antes de mandares uma única moeda</h3>
+    <p>
+      <b>1.</b> No PC, sem internet: clica duas vezes em
+      <code>CONFERIR-A-SEED.bat</code> e responde às perguntas.
+    </p>
+    <p>
+      <b>2.</b> As 24 palavras que ele imprime têm de ser iguais às da secção 4,
+      uma a uma. E ele não pode queixar-se do compromisso.
+    </p>
+    <p>
+      <b>3.</b> O fingerprint e o primeiro endereço do Sparrow têm de ser os da
+      secção 6.
+    </p>
+    <p>
+      Se alguma das três não bater — <b>para</b>. Não mandes moedas para nenhum
+      endereço desta cerimónia. Se foi o compromisso que não bateu, não é um
+      erro de cópia benigno: confere a cópia, e se estiver certa, deita a placa
+      fora.
+    </p>
+  </div>
+
+</div>
+
+<script>
+  (() => {
+    "use strict";
+
+    /* 64 hex = 4 linhas de 16, agrupadas de 4 em 4 -- exatamente como o ecra
+       do aparelho os mostra. Copiar linha a linha em vez de 64 seguidos e' o
+       que evita perder a conta a meio. */
+    function grelhaHex(destino) {
+      const alvo = document.getElementById(destino);
+      for (let linha = 0; linha < 4; linha++) {
+        const div = document.createElement("div");
+        div.className = "hexlinha";
+        const idx = document.createElement("span");
+        idx.className = "idx";
+        idx.textContent = String(linha + 1);
+        div.appendChild(idx);
+        for (let g = 0; g < 4; g++) {
+          const grupo = document.createElement("div");
+          grupo.className = "grupo";
+          for (let c = 0; c < 4; c++) {
+            const cel = document.createElement("span");
+            cel.className = "cel";
+            grupo.appendChild(cel);
+          }
+          div.appendChild(grupo);
+        }
+        alvo.appendChild(div);
+      }
+    }
+    grelhaHex("hex-commit");
+    grelhaHex("hex-chip");
+
+    /* 100 lancamentos, dez por linha, com a numeracao a esquerda. Os grupos de
+       cinco existem para se conferir uma linha sem contar do principio. */
+    const gd = document.getElementById("grelha-dados");
+    for (let linha = 0; linha < 10; linha++) {
+      const div = document.createElement("div");
+      div.className = "dadoslinha";
+      const idx = document.createElement("span");
+      idx.className = "idx";
+      idx.textContent = `${linha * 10 + 1}–${linha * 10 + 10}`;
+      div.appendChild(idx);
+      for (let c = 0; c < 10; c++) {
+        const cel = document.createElement("span");
+        cel.className = "cel";
+        div.appendChild(cel);
+      }
+      gd.appendChild(div);
+    }
+
+    function palavras(destino) {
+      const alvo = document.getElementById(destino);
+      for (let i = 1; i <= 24; i++) {
+        const p = document.createElement("div");
+        p.className = "palavra";
+        const n = document.createElement("span");
+        n.className = "num";
+        n.textContent = `${i}.`;
+        p.appendChild(n);
+        alvo.appendChild(p);
+      }
+    }
+    palavras("palavras-seed");
+    palavras("palavras-pass");
+
+    const fp = document.getElementById("fp");
+    for (let i = 0; i < 8; i++) {
+      const cel = document.createElement("span");
+      cel.className = "cel";
+      fp.appendChild(cel);
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -208,6 +208,14 @@ texto, e um emparelhamento de aspas que inventava falsos positivos.
 > dígitos não consegues correr o `verify.py`, e perdes a única coisa que torna
 > este projeto diferente de confiar cegamente no firmware.
 
+**Imprime a [folha de cerimónia](docs/folha-de-cerimonia.html) antes de
+começares.** Abre o ficheiro num browser e carrega em Ctrl+P. Um quadrado por
+carácter, 100 casas numeradas para os lançamentos, e as secções pela ordem da
+cerimónia — o compromisso é a secção 1, os dados são a 2. Quem preencher de
+cima para baixo faz a coisa certa sem ter de se lembrar porquê.
+
+Uma folha em branco é onde os erros de cópia nascem.
+
 Do ecrã do dispositivo, anota o `COMPROMISSO` (antes), e depois `E_física`,
 `E_chip` e as 24 palavras. Num PC **offline**, clica duas vezes em
 **`tools/CONFERIR-A-SEED.bat`** — ou, se preferires o terminal, corre
