@@ -14,6 +14,7 @@ typedef struct {
     int      cycles_frozen;  /* 1 = a contagem de ciclos nunca varia */
     uint32_t cycles;
     int64_t  now_us;
+    uint64_t rtc_ticks;      /* contador do RC lento */
     int      i2c_writes;     /* quantas transmissoes o OLED tentou */
 } hsv3_stub_t;
 

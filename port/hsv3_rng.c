@@ -22,8 +22,8 @@
 
 #include "bootloader_random.h"
 #include "esp_cpu.h"
+#include "soc/rtc.h"
 #include "esp_random.h"
-#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -84,14 +84,37 @@ int hsv3_rng_trng(uint8_t out[32])
 
 /* --- jitter do oscilador ----------------------------------------------- */
 /*
- * Fonte fisica independente do bloco RNG. Conta quantos ciclos da CPU (presa ao
- * cristal de 40 MHz) passam entre transicoes do RTC_SLOW_CLK, que corre no RC
- * interno de ~136 kHz. Os dois osciladores derivam um do outro por ruido termico,
- * por isso os bits de baixo da contagem sao genuinamente imprevisiveis.
+ * Conta quantos ciclos da CPU -- presa ao cristal de 40 MHz -- passam enquanto
+ * o RTC_SLOW_CLK avanca alguns tiques. Esse relogio corre no RC interno de
+ * ~136 kHz (CONFIG_RTC_CLK_SRC_INT_RC), que e' um oscilador FISICAMENTE
+ * SEPARADO do cristal. Os dois derivam um do outro por ruido termico, e e' dai
+ * que vem a imprevisibilidade dos bits de baixo da contagem.
+ *
+ * O QUE ISTO ERA ANTES, E PORQUE ESTAVA ERRADO
+ * --------------------------------------------
+ * A primeira versao media contra esp_timer_get_time(). O comentario dizia o
+ * mesmo que este -- "RC contra cristal" -- mas nao era verdade: no ESP32-S3 o
+ * esp_timer corre em cima do systimer, e
+ *
+ *     clk_tree_defs.h:  SYSTIMER_CLK_SRC_XTAL = SOC_MOD_CLK_XTAL
+ *                       SYSTIMER_CLK_SRC_DEFAULT = SOC_MOD_CLK_XTAL
+ *
+ * ou seja, o systimer e' alimentado pelo mesmo cristal que a CPU. Nao havia
+ * dois osciladores nenhuns: eram dois contadores do mesmo relogio. O que sobrava
+ * era ruido de temporizacao de software -- quantizacao do laco, cache, e o tique
+ * do FreeRTOS a 1 kHz a cair dentro de uma amostra em cada 33, que e' uma
+ * estrutura periodica e portanto previsivel.
+ *
+ * Com rtc_time_get() a medicao passa a ser mesmo entre dois dominios de relogio.
  *
  * Recolhe-se 1 bit por amostra (paridade da contagem) e passa-se tudo por SHA256
- * no fim -- extracao conservadora: 2048 amostras para 256 bits de saida.
+ * no fim. Quanta entropia ha por amostra, so medindo: tools/entropia.py.
  */
+
+/* Um tique do RC lento sao ~7.35 us a 136 kHz; quatro dao ~29 us, a mesma ordem
+ * de grandeza da janela anterior. Menos do que isto e a leitura do contador
+ * passa a pesar mais do que a espera. */
+#define JITTER_RTC_TICKS 4
 
 /* JITTER_SAMPLES sai da min-entropia assumida por amostra:
  *
@@ -149,32 +172,28 @@ int hsv3_health_feed(hsv3_health_t *h, uint8_t amostra)
     return HSV3_OK;
 }
 
-/* Uma amostra: quantos ciclos da CPU passam numa espera de ~30 us medida pelo
- * esp_timer. Os dois relogios derivam um do outro por ruido termico. */
-static uint32_t jitter_sample(uint64_t *prev_us)
+/* Uma amostra: quantos ciclos da CPU passam enquanto o RC bate JITTER_RTC_TICKS
+ * vezes. A espera termina no ritmo do RC; a contagem corre no ritmo do cristal. */
+static uint32_t jitter_sample(void)
 {
-    uint32_t start = esp_cpu_get_cycle_count();
-    uint64_t target = *prev_us + 30;
-    while ((uint64_t)esp_timer_get_time() < target) {
+    uint64_t alvo = rtc_time_get() + JITTER_RTC_TICKS;
+    uint32_t inicio = esp_cpu_get_cycle_count();
+    while (rtc_time_get() < alvo) {
         /* espera activa: o fim depende de quando o RC bate */
     }
-    uint32_t delta = esp_cpu_get_cycle_count() - start;
-    *prev_us = (uint64_t)esp_timer_get_time();
-    return delta;
+    return esp_cpu_get_cycle_count() - inicio;
 }
 
 int hsv3_rng_jitter(uint8_t out[32])
 {
     uint8_t acc[JITTER_SAMPLES / 8];
     hsv3_health_t saude;
-    uint64_t prev_us;
 
     memset(acc, 0, sizeof(acc));
     hsv3_health_init(&saude);
-    prev_us = (uint64_t)esp_timer_get_time();
 
     for (int i = 0; i < JITTER_SAMPLES; i++) {
-        uint8_t bit = (uint8_t)(jitter_sample(&prev_us) & 1u);
+        uint8_t bit = (uint8_t)(jitter_sample() & 1u);
 
         /* Falhar aqui para a cerimonia. Nao ha recolha parcial aproveitada. */
         if (hsv3_health_feed(&saude, bit) != HSV3_OK) {
@@ -194,8 +213,7 @@ int hsv3_rng_jitter(uint8_t out[32])
 #ifdef HSV3_JITTER_DUMP
 void hsv3_rng_jitter_raw(uint32_t *out, size_t n)
 {
-    uint64_t prev_us = (uint64_t)esp_timer_get_time();
-    for (size_t i = 0; i < n; i++) out[i] = jitter_sample(&prev_us);
+    for (size_t i = 0; i < n; i++) out[i] = jitter_sample();
 }
 #endif
 

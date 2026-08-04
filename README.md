@@ -31,7 +31,7 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 | Invariantes do código + mutações | **feito** (38 invariantes, 18 mutações, todas apanhadas) |
 | Testes de saúde da entropia (SP 800-90B) | **feito e testado** — RCT e APT correm durante a recolha |
 | Min-entropia medida da fonte de jitter | **por medir na placa** — o instrumento está feito, o número não |
-| Firmware | **281 344 bytes**, sha256 `c2f74f3d…` |
+| Firmware | **281 328 bytes**, sha256 `420adeb0…` |
 | Build reprodutível (Docker + IDF v5.3.2 fixado) | **feito**, por correr |
 | Atestação do que está gravado na placa | **feita** — app e bootloader lidos de volta, hashes iguais |
 
@@ -86,12 +86,24 @@ As três fontes do chip:
 | Fonte | O que é |
 |---|---|
 | TRNG | `esp_random()` **depois** de `bootloader_random_enable()` — sem isso é pseudo-aleatório, e é essa a família do bug da Mk3 |
-| jitter | Desvio do RC interno (~136 kHz) contra o cristal de 40 MHz. Independente do bloco RNG da Espressif |
+| jitter | Ciclos da CPU (cristal de 40 MHz) contados enquanto o RC interno de ~136 kHz bate. Dois osciladores fisicamente separados |
 | timing | Contagem de ciclos nos flancos do botão. Centenas de toques humanos, de graça |
 
-O `jitter` e o `timing` são independentes do **bloco RNG** da Espressif — que é
-o que interessa contra o bug da Mk3 — mas não são independentes um do outro:
-ambos derivam do mesmo cristal de 40 MHz. Três fontes, dois domínios de relógio.
+**Correção importante.** Até 04/08/2026 o jitter media contra `esp_timer_get_time()`,
+e o comentário no código dizia — como este README dizia — que estava a comparar o
+RC com o cristal. Não estava: no ESP32-S3 o `esp_timer` corre em cima do systimer,
+e `SYSTIMER_CLK_SRC_DEFAULT = SOC_MOD_CLK_XTAL`. Os dois lados da medição saíam do
+**mesmo** oscilador.
+
+O que sobrava era ruído de temporização de software — quantização do laço, cache,
+e o tique do FreeRTOS a 1 kHz a cair numa amostra em cada 33, que é uma estrutura
+periódica e portanto previsível. Agora usa `rtc_time_get()`, que lê mesmo o
+contador do RC.
+
+Isto nunca comprometeu nenhuma seed: o `E_chip` é o hash das três fontes, e a seed
+é `E_física XOR E_chip` com os 258 bits dos dados a segurar tudo. Um XOR com uma
+fonte fraca não enfraquece a outra. Mas era uma promessa que o código não cumpria,
+e agora cumpre.
 
 Se **qualquer** uma falhar, a cerimónia aborta. Não há caminho degradado — foi
 um caminho degradado silencioso que destruiu a Mk3.
