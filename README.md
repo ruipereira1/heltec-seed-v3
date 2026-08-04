@@ -28,10 +28,11 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 | `main/main.c` — máquina de estados da cerimónia | **compila**; a ordem da cerimónia é verificada por invariante |
 | Verificação anti-rádio no build | **passa** — zero código de Wi-Fi/BT/LoRa ligado |
 | Modo passo a passo do verificador | **feito e testado** (8 casos, incluindo os erros de cópia) |
+| Modo de letras grandes no ecrã | **feito e testado** — hex e palavras a corpo duplo, à escolha no arranque |
 | Invariantes do código + mutações | **feito** (38 invariantes, 18 mutações, todas apanhadas) |
 | Testes de saúde da entropia (SP 800-90B) | **feito e testado** — RCT e APT correm durante a recolha |
 | Min-entropia medida da fonte de jitter | **por medir na placa** — o instrumento está feito, o número não |
-| Firmware | **281 328 bytes**, sha256 `420adeb0…` |
+| Firmware | **281 872 bytes**, sha256 `11430158…` |
 | Build reprodutível (Docker + IDF v5.3.2 fixado) | **feito**, por correr |
 | Atestação do que está gravado na placa | **feita** — app e bootloader lidos de volta, hashes iguais |
 
