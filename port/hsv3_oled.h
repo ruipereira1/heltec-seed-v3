@@ -30,6 +30,20 @@ void hsv3_oled_text_inv(int col, int row, const char *s);
  * tamanho que o texto de ajuda. Com scale=3 fica 15x21 pixeis. */
 void hsv3_oled_bigchar(int x, int y, char ch, int scale);
 
+/* Uma linha inteira ampliada, para o modo de letras grandes.
+ *
+ * A escala 2 cada caractere ocupa 10x14 pixeis e avanca 12, por isso cabem 10
+ * numa linha em vez de 21. Metade do texto por ecra, mas legivel por quem nao
+ * tem vista de aguia -- e o hex e as 24 palavras sao precisamente o que se
+ * copia a mao e onde um caractere mal lido custa a carteira.
+ *
+ * Ao contrario do hsv3_oled_text(), isto desenha a pixel e COMBINA com o que ja
+ * la esta, em vez de atribuir o byte da pagina. Pode sobrepor-se a graficos. */
+void hsv3_oled_bigtext(int x, int y, const char *s, int scale);
+
+/* Quantos caracteres cabem numa linha a esta escala. */
+int hsv3_oled_bigcols(int scale);
+
 /* Linha horizontal, para separar zonas do ecra. */
 void hsv3_oled_hline(int x0, int x1, int y, int on);
 

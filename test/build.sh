@@ -10,6 +10,18 @@ set -e
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 CC="python -m ziglang cc"
+
+# O export.ps1 do ESP-IDF poe o Python dele a frente no PATH, e esse nao tem o
+# ziglang. O erro que sai dai -- "No module named ziglang" -- parece um teste a
+# falhar quando e' so a consola errada. Melhor dizer o que se passa.
+if ! python -c "import ziglang" 2>/dev/null; then
+  echo "falta o ziglang no Python que esta a ser usado:"
+  echo "  $(python -c 'import sys; print(sys.executable)' 2>/dev/null || echo '?')"
+  echo
+  echo "Ou instala-o nesse:      python -m pip install ziglang"
+  echo "ou corre isto numa consola SEM o ambiente do ESP-IDF activado."
+  exit 1
+fi
 MB="$ROOT/third_party/mbedtls"
 OUT="$ROOT/test/build"
 mkdir -p "$OUT"
