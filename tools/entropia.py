@@ -13,19 +13,20 @@
 
 PORQUE E' QUE ISTO EXISTE
 -------------------------
-O firmware assume meio bit de min-entropia por amostra de jitter e recolhe
-2048 amostras para 256 bits de saida. Esse "meio bit" era uma suposicao escrita
-num comentario -- a afirmacao mais fraca do projeto inteiro, e a unica que
-ninguem tinha maneira de contestar.
+O firmware assume um bit de min-entropia por amostra de jitter e recolhe 1024
+amostras para 256 bits de saida. Esse numero e' uma suposicao escrita num
+comentario em port/hsv3_rng.h -- a afirmacao mais fraca do projeto inteiro, e a
+unica que ninguem tinha maneira de contestar sem hardware.
 
 Este programa transforma-a num numero medido na tua placa.
 
 O QUE ISTO NAO E'
 -----------------
 Nao e' a ferramenta oficial do NIST, e nao substitui uma certificacao. O
-SP 800-90B tem dez estimadores para fontes nao-IID; aqui estao cinco. Como a
-min-entropia final e' o MINIMO de todos, um subconjunto so pode dar um valor
-IGUAL OU MAIOR que o verdadeiro.
+SP 800-90B tem dez estimadores para fontes nao-IID; aqui estao cinco, e quatro
+deles correm sobre a amostra de 16 bits inteira (o quinto, Markov, so' serve
+para bits). Como a min-entropia final e' o MINIMO de todos os dez, um
+subconjunto so pode dar um valor IGUAL OU MAIOR que o verdadeiro.
 
 Ou seja: o numero que sai daqui e' um LIMITE SUPERIOR otimista. Se ele ja
 estiver abaixo do que o firmware assume, a fonte esta pior do que isso.
@@ -36,10 +37,38 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import sys
 from collections import Counter, defaultdict
 
 Z = 2.576   # 99% de confianca, como o SP 800-90B usa
+
+
+# ---------------------------------------------------------------------------
+# Os numeros vem do firmware, nao sao duplicados a mao. Duplicar constantes em
+# dois ficheiros e' como se tornou "meio bit" numa suposicao que sobreviveu sem
+# ninguem reparar -- aqui le-se sempre o port/hsv3_rng.h actual.
+# ---------------------------------------------------------------------------
+
+def _ler_constantes_firmware() -> tuple[int, int, int]:
+    caminho = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "..", "port", "hsv3_rng.h")
+    with open(caminho, encoding="utf-8") as fh:
+        txt = fh.read()
+    num = int(re.search(r"HSV3_JITTER_H_MIN_NUM\s+(\d+)", txt).group(1))
+    den = int(re.search(r"HSV3_JITTER_H_MIN_DEN\s+(\d+)", txt).group(1))
+    # a mesma conta inteira de port/hsv3_rng.c: 256 * DEN/NUM * 4
+    amostras = 256 * den // num * 4
+    return num, den, amostras
+
+
+try:
+    HSV3_JITTER_H_MIN_NUM, HSV3_JITTER_H_MIN_DEN, JITTER_SAMPLES = \
+        _ler_constantes_firmware()
+except (OSError, AttributeError):
+    # Sem o firmware ao lado (por exemplo, este ficheiro copiado sozinho):
+    # cai nos valores actuais em vez de rebentar.
+    HSV3_JITTER_H_MIN_NUM, HSV3_JITTER_H_MIN_DEN, JITTER_SAMPLES = 1, 1, 1024
 
 
 # ---------------------------------------------------------------------------
@@ -259,6 +288,16 @@ ESTIMADORES = [
     ("6.3.9  multi markov model w/ counting", est_multimmc),
 ]
 
+# Destes cinco, so o Markov (6.3.3) esta escrito so' para alfabeto binario --
+# tem uma tabela de transicao 2x2 codificada a direito. Os outros quatro
+# comparam VALORES, nao bits, e por isso funcionam sobre qualquer alfabeto: e'
+# o que permite corre-los directamente sobre as amostras de 16 bits que o
+# firmware usa desde a correcao de 04/08/2026, sem ter de as reduzir a um bit
+# cada uma primeiro -- que foi exactamente o erro que a medicao apanhou.
+ESTIMADORES_QUALQUER_ALFABETO = [
+    (nome, f) for nome, f in ESTIMADORES if not nome.startswith("6.3.3")
+]
+
 
 # ---------------------------------------------------------------------------
 # Leitura do despejo
@@ -275,10 +314,15 @@ def ler_amostras(caminho: str) -> list[int]:
     return brutas
 
 
-def cortes(H: float) -> tuple[int, int]:
-    """Os cortes RCT e APT do SP 800-90B 4.4 para alfa = 2^-20, W = 1024."""
+def cortes(H: float, W: int = 512) -> tuple[int, int]:
+    """Os cortes RCT e APT do SP 800-90B 4.4 para alfa = 2^-20.
+
+    W = 512 e' a janela do SP 800-90B para amostras NAO binarias, que e' o
+    caso do firmware desde 04/08/2026 (amostras de 16 bits, nao 1 bit). Passa
+    W=1024 para reproduzir os cortes da versao anterior, so-binaria.
+    """
     rct = 1 + math.ceil(20.0 / H)
-    W, p = 1024, 2.0 ** -H
+    p = 2.0 ** -H
     # menor C com Pr(Binomial(W, p) >= C) <= 2^-20
     alvo = 2.0 ** -20
     lo, hi = 0, W
@@ -330,12 +374,23 @@ def self_test() -> int:
     ver("com memoria 95%: markov baixo", est_markov(mem), 0.0, 0.35)
     ver("com memoria 95%: mcv nao ve nada", est_mcv(mem), 0.80, 1.0)
 
-    # Os cortes tem de bater com os que estao no hsv3_rng.h
-    rct, apt = cortes(0.5)
-    print(f"  {'ok ' if (rct, apt) == (41, 793) else '[X]'} "
-          f"{'cortes RCT/APT para H=0.5':<34} {rct}, {apt}")
-    if (rct, apt) != (41, 793):
-        falhas.append(f"cortes {rct},{apt} != 41,793 do hsv3_rng.h")
+    # Os quatro estimadores de qualquer alfabeto tem de funcionar directamente
+    # sobre valores de 16 bits, nao so 0/1 -- e' assim que o firmware os usa.
+    r16 = random.Random(0xFACADE)
+    boa16 = [r16.getrandbits(16) for _ in range(n)]
+    h16 = min(f(boa16) for _, f in ESTIMADORES_QUALQUER_ALFABETO)
+    ver("16 bits aleatorios: perto do maximo do estimador", h16, 3.0, 20.0)
+
+    presa16 = [0x1234] * n
+    h16fixa = min(f(presa16) for _, f in ESTIMADORES_QUALQUER_ALFABETO)
+    ver("16 bits sempre iguais: zero", h16fixa, 0.0, 0.05)
+
+    # Os cortes tem de bater com os que estao no hsv3_rng.h (H=1, W=512)
+    rct, apt = cortes(1.0, W=512)
+    print(f"  {'ok ' if (rct, apt) == (21, 311) else '[X]'} "
+          f"{'cortes RCT/APT para H=1.0, W=512':<34} {rct}, {apt}")
+    if (rct, apt) != (21, 311):
+        falhas.append(f"cortes {rct},{apt} != 21,311 do hsv3_rng.h")
 
     print()
     if falhas:
@@ -354,12 +409,18 @@ def main() -> int:
         return self_test()
 
     if "--cortes" in args:
-        print("SP 800-90B 4.4, alfa = 2^-20, janela APT = 1024\n")
-        print(f"  {'H (bits/amostra)':<20} {'RCT':>6} {'APT':>6}")
+        print("SP 800-90B 4.4, alfa = 2^-20\n")
+        print("Amostras nao binarias (o firmware desde 04/08/2026: 16 bits cada)")
+        print(f"  {'H (bits/amostra)':<20} {'RCT':>6} {'APT em 512':>10}")
+        for H in (0.5, 1.0, 1.5, 2.0, 2.72):
+            rct, apt = cortes(H, W=512)
+            marca = "  <- hsv3_rng.h" if H == 1.0 else ""
+            print(f"  {H:<20.2f} {rct:>6} {apt:>10}{marca}")
+        print("\nAmostras binarias (versao anterior, so a paridade)")
+        print(f"  {'H (bits/amostra)':<20} {'RCT':>6} {'APT em 1024':>10}")
         for H in (0.25, 0.5, 0.75, 1.0):
-            rct, apt = cortes(H)
-            print(f"  {H:<20.2f} {rct:>6} {apt:>6}")
-        print("\nO hsv3_rng.h usa a linha do H = 0.50.")
+            rct, apt = cortes(H, W=1024)
+            print(f"  {H:<20.2f} {rct:>6} {apt:>10}")
         return 0
 
     if not args:
@@ -378,35 +439,45 @@ def main() -> int:
               f"pelo menos 1000, e de preferencia 100000.", file=sys.stderr)
         return 2
 
-    # O firmware guarda a paridade de cada contagem: e' essa a sequencia que
-    # interessa medir, nao as contagens em bruto.
-    bits = [b & 1 for b in brutas]
+    # O firmware guarda os 16 bits baixos de cada contagem desde 04/08/2026 --
+    # e' essa a sequencia que interessa medir, nao um bit isolado dela. A
+    # versao anterior media so a paridade (bit 0); ficou aqui como diagnostico
+    # porque foi assim que se descobriu que o bit 0 esta morto nesta placa
+    # (o laco de espera gasta um numero par de ciclos por iteracao).
+    amostras = [b & 0xffff for b in brutas]
+    bit0 = [b & 1 for b in brutas]
 
     print()
     print("=" * 62)
     print(f"  {len(brutas)} amostras de {os.path.basename(caminho)}")
     print("=" * 62)
     print()
-    distintas = len(set(brutas))
-    print(f"  contagens distintas   {distintas} de {len(brutas)}")
-    print(f"  proporcao de uns      {sum(bits) / len(bits):.4f}  (ideal 0.5)")
+    distintas = len(set(amostras))
+    print(f"  valores de 16 bits distintos   {distintas} de {len(amostras)}")
+    print(f"  proporcao de uns no bit 0      {sum(bit0) / len(bit0):.4f}  "
+          f"(ideal 0.5 -- {'MORTO' if abs(sum(bit0)/len(bit0) - 0.5) > 0.3 else 'ok'})")
     print()
-    print("  min-entropia por amostra, pelos estimadores implementados:")
+    print("  min-entropia por amostra de 16 bits, pelos quatro estimadores que")
+    print("  funcionam sobre qualquer alfabeto (o Markov e' so' para bits):")
     print()
 
     valores = []
-    for nome, f in ESTIMADORES:
-        v = f(bits)
+    for nome, f in ESTIMADORES_QUALQUER_ALFABETO:
+        v = f(amostras)
         valores.append(v)
         print(f"    {nome:<40} {v:6.4f}")
 
     H = min(valores)
     print()
-    print(f"  H (minimo dos acima)  {H:.4f} bits por amostra")
+    print(f"  H (minimo dos acima)  {H:.4f} bits por amostra de 16 bits")
+    print()
+    print(f"  Diagnostico -- so o bit 0 (metodo antigo, ate 04/08/2026):")
+    print(f"    {est_mcv(bit0):.4f} bits. Se isto vier perto de 0 mas o H")
+    print(f"    acima nao, e' sinal de que um bit em particular esta preso mas")
+    print(f"    a amostra continua viva -- foi o que aconteceu nesta placa.")
     print()
 
-    ASSUMIDO = 0.5
-    JITTER_SAMPLES = 2048
+    ASSUMIDO = HSV3_JITTER_H_MIN_NUM / HSV3_JITTER_H_MIN_DEN
     print("=" * 62)
     if H >= ASSUMIDO:
         print(f"  A medicao ({H:.3f}) NAO CONTRADIZ o assumido ({ASSUMIDO}).")
@@ -420,12 +491,12 @@ def main() -> int:
         print()
         print(f"  Poe HSV3_JITTER_H_MIN a {H:.3f} em port/hsv3_rng.h -- o")
         print(f"  JITTER_SAMPLES ajusta-se sozinho para {preciso * 4}.")
-    rct, apt = cortes(max(H, 0.01))
+    rct, apt = cortes(max(H, 0.01), W=512)
     print()
-    print(f"  Cortes de saude para este H: RCT {rct}, APT {apt} em 1024.")
+    print(f"  Cortes de saude para este H (nao binario): RCT {rct}, APT {apt} em 512.")
     print("=" * 62)
     print()
-    print("  Lembra-te: estes cinco estimadores sao um subconjunto dos dez do")
+    print("  Lembra-te: estes quatro estimadores sao um subconjunto dos dez do")
     print("  SP 800-90B, e a min-entropia e o minimo de todos. O valor acima")
     print("  e um LIMITE SUPERIOR -- a fonte nunca esta melhor do que isto.")
     print()

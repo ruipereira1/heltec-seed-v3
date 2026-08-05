@@ -126,8 +126,7 @@ static void test_health(void)
     ok("APT: alternado passa a janela toda", passou);
 
     /* Uma fonte enviesada que nunca repete o suficiente para o RCT: um zero a
-     * cada 20 uns, ou seja 973 uns em 1024. O RCT (corte 41) nao ve nada; o
-     * APT (corte 793) ve.
+     * cada 20 uns. O RCT (corte pequeno) nao ve nada; o APT ve.
      *
      * O zero vai no FIM de cada grupo de 20, de proposito: a referencia do APT
      * e' a primeira amostra da janela, e se a primeira fosse o valor raro esta
@@ -137,7 +136,7 @@ static void test_health(void)
     hsv3_health_init(&h);
     int apanhou = 0;
     for (int i = 0; i < HSV3_APT_WINDOW; i++) {
-        if (hsv3_health_feed(&h, (uint8_t)(i % 20 == 19 ? 0 : 1)) != HSV3_OK) {
+        if (hsv3_health_feed(&h, (uint16_t)(i % 20 == 19 ? 0 : 1)) != HSV3_OK) {
             apanhou = 1;
             break;
         }
@@ -150,9 +149,22 @@ static void test_health(void)
     uint32_t x = 0x13579bdfu;
     for (int i = 0; i < HSV3_APT_WINDOW * 4; i++) {
         x = x * 1664525u + 1013904223u;
-        if (hsv3_health_feed(&h, (uint8_t)((x >> 31) & 1)) != HSV3_OK) passou = 0;
+        if (hsv3_health_feed(&h, (uint16_t)((x >> 31) & 1)) != HSV3_OK) passou = 0;
     }
     ok("saude: fonte equilibrada nao da falso alarme", passou);
+
+    /* A amostra e' de 16 bits, nao 1: duas contagens que so diferem no byte
+     * alto tem de contar como DIFERENTES. Isto apanharia um bug concreto -- se
+     * a comparacao truncasse para uint8_t antes de comparar, 0x0005 e 0x0105
+     * pareceriam iguais e o RCT dispararia em jitter real que nunca repete o
+     * byte baixo mas varia no alto. */
+    hsv3_health_init(&h);
+    passou = 1;
+    for (int i = 0; i < HSV3_RCT_CUTOFF * 2; i++) {
+        uint16_t amostra = (uint16_t)((i & 1) ? 0x0005u : 0x0105u);
+        if (hsv3_health_feed(&h, amostra) != HSV3_OK) passou = 0;
+    }
+    ok("saude: distingue amostras que so diferem no byte alto", passou);
 }
 
 static void test_timing(void)

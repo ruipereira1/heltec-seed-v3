@@ -134,12 +134,12 @@ MUTACOES = [
 
     ("o corte RCT deixa de bater com o SP 800-90B",
      "port/hsv3_rng.h",
-     [("#define HSV3_RCT_CUTOFF   41", "#define HSV3_RCT_CUTOFF   64")],
+     [("#define HSV3_RCT_CUTOFF   21", "#define HSV3_RCT_CUTOFF   64")],
      "o corte RCT do firmware bate com o SP 800-90B"),
 
     ("o corte APT deixa de bater com o SP 800-90B",
      "port/hsv3_rng.h",
-     [("#define HSV3_APT_CUTOFF  793", "#define HSV3_APT_CUTOFF  900")],
+     [("#define HSV3_APT_CUTOFF  311", "#define HSV3_APT_CUTOFF  900")],
      "o corte APT do firmware bate com o SP 800-90B"),
 ]
 

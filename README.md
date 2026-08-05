@@ -31,8 +31,8 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 | Modo de letras grandes no ecrã | **feito e testado** — hex e palavras a corpo duplo, à escolha no arranque |
 | Invariantes do código + mutações | **feito** (38 invariantes, 18 mutações, todas apanhadas) |
 | Testes de saúde da entropia (SP 800-90B) | **feito e testado** — RCT e APT correm durante a recolha |
-| Min-entropia medida da fonte de jitter | **por medir na placa** — o instrumento está feito, o número não |
-| Firmware | **281 872 bytes**, sha256 `11430158…` |
+| Min-entropia medida da fonte de jitter | **feito** — 1,96 bits/amostra nesta placa; a extração original só via 0,014 (corrigida) |
+| Firmware | **281 888 bytes**, sha256 `c3df9b42…` |
 | Build reprodutível (Docker + IDF v5.3.2 fixado) | **feito**, por correr |
 | Atestação do que está gravado na placa | **feita** — app e bootloader lidos de volta, hashes iguais |
 
@@ -121,8 +121,8 @@ que é quando ninguém está a olhar:
 
 | Teste | O que apanha | Corte |
 |---|---|---|
-| RCT | amostras iguais seguidas — fonte presa | 41 |
-| APT | demasiadas iguais numa janela — fonte enviesada | 793 em 1024 |
+| RCT | amostras iguais seguidas — fonte presa | 21 |
+| APT | demasiadas iguais numa janela — fonte enviesada | 311 em 512 |
 
 Os cortes são calculados para uma taxa de falso alarme de 2⁻²⁰, não escolhidos
 a olho: `python tools/entropia.py --cortes` reproduz os dois, e há uma
@@ -132,15 +132,30 @@ O teste anterior era "as contagens variaram pelo menos uma em cada oito", que s�
 apanhava uma fonte completamente morta. Uma fonte a debitar `0101010101…`
 passava, e uma que degradasse a meio da recolha passava também.
 
-### O número que ainda é uma suposição
+### O número: medido, não suposto
 
-O firmware assume **meio bit de min-entropia por amostra** de jitter e recolhe
-2048 amostras para 256 bits. Esse meio bit é uma suposição conservadora, não uma
-medição — e é a afirmação mais fraca do projeto inteiro. Está declarada em
-[port/hsv3_rng.h](port/hsv3_rng.h) como `HSV3_JITTER_H_MIN`, com o `JITTER_SAMPLES`
-derivado dela, para não poder ser esquecida.
+**Medido nesta placa a 04/08/2026, com 4000 amostras reais:** 1,96 bits de
+min-entropia por amostra (o mínimo dos quatro estimadores do SP 800-90B que
+correm sobre a amostra inteira). O firmware assume **1 bit**, o que deixa quase
+2× de margem. Está declarado em [port/hsv3_rng.h](port/hsv3_rng.h) como
+`HSV3_JITTER_H_MIN`, com o `JITTER_SAMPLES` derivado dele.
 
-Para a medir na tua placa:
+Isto substitui uma correção que teve de acontecer no mesmo dia. A extração
+original guardava só a **paridade** de cada contagem — 1 bit de 32. A medição
+mostrou porquê isso não servia:
+
+```
+bit 0 (o que se guardava)   0,95% de uns   0,014 bits/amostra   MORTO
+amostra de 16 bits inteira                 1,96  bits/amostra   viva
+```
+
+O laço de espera gasta sempre um número par de ciclos por iteração, por isso o
+bit 0 nunca varia — não porque a fonte estivesse fraca, mas porque a extração
+deitava fora os 31 bits que continham quase toda a variação. Corrigido: agora
+entram os 16 bits baixos de cada amostra no acumulador, e os testes de saúde
+olham para a amostra inteira, não para 1 bit dela.
+
+Para repetir a medição na tua placa:
 
 ```sh
 idf.py -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.debug" \
@@ -153,14 +168,19 @@ python tools/entropia.py amostras.txt
 A build de medição **não gera seeds**. Não é um modo escondido num menu: a
 função do despejo nunca regressa, e por isso o compilador elimina a cerimónia
 inteira — as funções `entropy_round`, `collect_physical`, `show_hex32` e
-`passphrase_typed` não existem nesse binário. Ele fica 72 KB mais pequeno.
+`passphrase_typed` não existem nesse binário. Ele fica ~73 KB mais pequeno.
 
 O [`tools/entropia.py`](tools/entropia.py) implementa cinco dos dez estimadores
-do SP 800-90B. Como a min-entropia é o mínimo de todos, um subconjunto só pode
-dar um valor **igual ou maior** que o verdadeiro: o número que sai é um limite
-superior otimista. Se já estiver abaixo do assumido, a fonte está pior que isso.
-Para um número publicável, corre a
+do SP 800-90B — quatro correm sobre qualquer alfabeto (incluindo os 16 bits da
+amostra); o quinto, Markov, só serve para bits e por isso fica de fora do
+número principal, reportado à parte como diagnóstico. Como a min-entropia é o
+mínimo de todos os dez do standard, um subconjunto só pode dar um valor
+**igual ou maior** que o verdadeiro: o número que sai é um limite superior
+otimista. Se já estiver abaixo do assumido, a fonte está pior que isso. Para um
+número publicável, corre a
 [ferramenta oficial do NIST](https://github.com/usnistgov/SP800-90B_EntropyAssessment).
+O silício não é todo igual — repete a medição na tua placa antes de confiar
+neste número.
 
 ---
 

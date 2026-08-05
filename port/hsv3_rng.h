@@ -35,15 +35,45 @@ int hsv3_rng_trng(uint8_t out[32]);
  * JITTER_SAMPLES na proporcao, ou baixar este valor e aceitar que a fonte
  * contribui menos do que se dizia. O que nao se pode e' deixar ficar.
  */
-#define HSV3_JITTER_H_MIN_NUM   1   /* 1/2 bit por amostra = 0.5 */
-#define HSV3_JITTER_H_MIN_DEN   2
+#define HSV3_JITTER_H_MIN_NUM   1   /* 1 bit por amostra */
+#define HSV3_JITTER_H_MIN_DEN   1
+
+/* MEDIDO NESTA PLACA a 04/08/2026, com 4000 amostras:
+ *
+ *     valores distintos      135
+ *     valor mais frequente   15.2%
+ *     min-entropia (MCV)     2.72 bits por amostra
+ *
+ * Assume-se 1 bit, que deixa 2.7x de margem para os estimadores por previsao
+ * cortarem abaixo do MCV. Repete a medicao na tua placa antes de confiares
+ * neste numero -- o silicio nao e todo igual.
+ *
+ * A AMOSTRA E' A CONTAGEM INTEIRA, NAO UM BIT DELA
+ * ------------------------------------------------
+ * A primeira versao guardava so a paridade de cada contagem. A medicao na placa
+ * mostrou porque e' que isso nao servia:
+ *
+ *     bit 0   0.95% de uns   0.014 bits   <- morto
+ *     bit 1   55.2%          0.857
+ *     bit 4   47.4%          0.928
+ *
+ * O laco de espera gasta um numero par de ciclos por iteracao, por isso a
+ * contagem e' quase sempre par e o bit 0 nao varia. A fonte estava boa; a
+ * extraccao e' que deitava fora 31 bits dos 32 e ficava com o unico que estava
+ * morto. Na placa isso dava corridas de 245 amostras iguais e o RCT abortava a
+ * cerimonia -- com razao.
+ *
+ * Agora entra a contagem toda no acumulador, e os testes de saude olham para a
+ * amostra inteira. Nao depende de nenhum bit em particular estar vivo, o que
+ * seria fragil: a granularidade do laco muda com o compilador. */
 
 /* Cortes dos testes de saude do SP 800-90B 4.4, para alfa = 2^-20 e amostras
- * binarias com a min-entropia acima. Calculados, nao arredondados a olho --
- * tools/entropia.py --cortes reproduz estes dois numeros. */
-#define HSV3_RCT_CUTOFF   41    /* 41 amostras iguais seguidas = fonte presa */
-#define HSV3_APT_WINDOW 1024
-#define HSV3_APT_CUTOFF  793    /* mais de 793 iguais em 1024 = enviesada */
+ * NAO BINARIAS (por isso janela de 512, nao 1024) com a min-entropia acima.
+ * Calculados, nao arredondados a olho -- tools/entropia.py --cortes reproduz
+ * estes dois numeros. */
+#define HSV3_RCT_CUTOFF   21    /* 21 amostras iguais seguidas = fonte presa */
+#define HSV3_APT_WINDOW  512
+#define HSV3_APT_CUTOFF  311    /* mais de 311 iguais em 512 = enviesada */
 
 /* 32 bytes vindos do desvio entre o RC interno (~136 kHz) e o cristal de
  * 40 MHz. Fonte fisica independente do bloco RNG da Espressif. Demora ~1 s.
@@ -55,19 +85,24 @@ int hsv3_rng_jitter(uint8_t out[32]);
 /* Os testes de saude, expostos para poderem ser testados no PC com sequencias
  * escolhidas a mao. Devolvem HSV3_OK ou HSV3_ERR_BACKEND.
  *
- * Alimenta-se um bit de cada vez; o estado vive no contexto, nao em estaticas,
- * para os testes poderem correr casos independentes. */
+ * A amostra e' de 16 bits, nao 1: a contagem de ciclos varia numa gama de
+ * ~1900 (medido nesta placa), que cabe folgada em 16 bits sem perder nada da
+ * variacao. Usar so a paridade era o erro da versao anterior -- ver o
+ * historico de HSV3_JITTER_H_MIN mais acima.
+ *
+ * O estado vive no contexto, nao em estaticas, para os testes poderem correr
+ * casos independentes. */
 typedef struct {
     int      arrancou;
-    uint8_t  anterior;      /* RCT: ultima amostra */
+    uint16_t anterior;      /* RCT: ultima amostra */
     unsigned repeticoes;    /* RCT: quantas iguais seguidas */
-    uint8_t  ref;           /* APT: a amostra de referencia da janela */
+    uint16_t ref;           /* APT: a amostra de referencia da janela */
     unsigned na_janela;     /* APT: quantas amostras ja entraram */
     unsigned iguais;        /* APT: quantas iguais a referencia */
 } hsv3_health_t;
 
 void hsv3_health_init(hsv3_health_t *h);
-int  hsv3_health_feed(hsv3_health_t *h, uint8_t amostra);
+int  hsv3_health_feed(hsv3_health_t *h, uint16_t amostra);
 
 #ifdef HSV3_JITTER_DUMP
 /* Contagens de ciclos cruas, sem paridade e sem hash: e' o que a medicao de

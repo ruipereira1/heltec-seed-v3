@@ -107,8 +107,9 @@ int hsv3_rng_trng(uint8_t out[32])
  *
  * Com rtc_time_get() a medicao passa a ser mesmo entre dois dominios de relogio.
  *
- * Recolhe-se 1 bit por amostra (paridade da contagem) e passa-se tudo por SHA256
- * no fim. Quanta entropia ha por amostra, so medindo: tools/entropia.py.
+ * Recolhem-se os 16 bits baixos de cada amostra -- a gama medida (~1900,
+ * ver HSV3_JITTER_H_MIN acima) cabe la sem perder nada -- e passa-se tudo por
+ * SHA256 no fim. Quanta entropia ha por amostra, so medindo: tools/entropia.py.
  */
 
 /* Um tique do RC lento sao ~7.35 us a 136 kHz; quatro dao ~29 us, a mesma ordem
@@ -143,7 +144,7 @@ void hsv3_health_init(hsv3_health_t *h)
     memset(h, 0, sizeof(*h));
 }
 
-int hsv3_health_feed(hsv3_health_t *h, uint8_t amostra)
+int hsv3_health_feed(hsv3_health_t *h, uint16_t amostra)
 {
     /* --- RCT: quantas amostras iguais seguidas --- */
     if (!h->arrancou) {
@@ -186,22 +187,26 @@ static uint32_t jitter_sample(void)
 
 int hsv3_rng_jitter(uint8_t out[32])
 {
-    uint8_t acc[JITTER_SAMPLES / 8];
+    /* 2 bytes por amostra: os 16 bits baixos da contagem, little-endian. Com
+     * JITTER_SAMPLES=1024 (H=1 bit) isto fica com o mesmo tamanho que o
+     * acumulador anterior (2048 bytes) -- a correcao nao custou RAM a mais. */
+    uint8_t acc[JITTER_SAMPLES * 2];
     hsv3_health_t saude;
 
     memset(acc, 0, sizeof(acc));
     hsv3_health_init(&saude);
 
     for (int i = 0; i < JITTER_SAMPLES; i++) {
-        uint8_t bit = (uint8_t)(jitter_sample() & 1u);
+        uint16_t amostra = (uint16_t)(jitter_sample() & 0xffffu);
 
         /* Falhar aqui para a cerimonia. Nao ha recolha parcial aproveitada. */
-        if (hsv3_health_feed(&saude, bit) != HSV3_OK) {
+        if (hsv3_health_feed(&saude, amostra) != HSV3_OK) {
             hsv3_wipe(acc, sizeof(acc));
             hsv3_wipe(&saude, sizeof(saude));
             return HSV3_ERR_BACKEND;
         }
-        acc[i / 8] |= (uint8_t)(bit << (i % 8));
+        acc[i * 2]     = (uint8_t)(amostra & 0xffu);
+        acc[i * 2 + 1] = (uint8_t)(amostra >> 8);
     }
 
     hsv3_sha256(acc, sizeof(acc), out);
