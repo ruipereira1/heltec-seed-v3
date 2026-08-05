@@ -151,6 +151,18 @@ MUTACOES = [
      [('hsv3_oled_text(0, 7, "termina");',
        'hsv3_oled_text(0, 7, "termina a cerimonia agora");')],
      "sobrepunha a barra"),
+
+    # O bug real: o ecra do aquecimento volta a mostrar as duas fraccoes
+    # (AQUECER N/64 e o passo N/8) na mesma barra, porque alguem trocou
+    # ui_header_bare por ui_header "so' para testar uma coisa" e esqueceu-se
+    # de voltar atras.
+    ("um dos ecras de fraccao propria volta a mostrar tambem o passo N/8",
+     "main/main.c",
+     [('snprintf(l, sizeof(l), "AQUECER %u/%u", n, (unsigned)HSV3_TIMING_MIN_EVENTS);\n'
+       '        ui_header_bare(l);',
+       'snprintf(l, sizeof(l), "AQUECER %u/%u", n, (unsigned)HSV3_TIMING_MIN_EVENTS);\n'
+       '        ui_header(l);')],
+     "os ecras com fraccao propria usam ui_header_bare"),
 ]
 
 

@@ -102,6 +102,13 @@ static void wipe_everything(void)
  *
  * REGRA: nao escrever texto na linha 6. O put_char do driver ATRIBUI o byte da
  * pagina em vez de o combinar, por isso texto nessa linha apagaria o filete.
+ *
+ * EXCECAO DELIBERADA: cinco ecras -- DADOS/MOEDA a contar, AQUECER, PASS e as
+ * paginas de SEED/PASSPHRASE -- tem titulo com fraccao propria (12/100,
+ * 24/64...). Nesses usa-se ui_header_bare()/screen_bare(), sem o passo N/8,
+ * porque duas fraccoes na mesma barra e' o tipo de coisa que so' se confunde
+ * ao vivo, nao ao ler o codigo: confirmado em hardware a 05/08/2026.
+ * Ver ui_header_bare() para o porque completo.
  */
 
 /* Os oito passos da cerimonia, tal como aparecem no canto da barra:
@@ -128,6 +135,30 @@ static void ui_header(const char *title)
     hsv3_oled_text_inv(0, 0, bar);
 }
 
+/* Como ui_header(), mas sem o passo da cerimonia (N/8) a direita.
+ *
+ * Cinco ecras tem titulo com fraccao propria -- "DADOS 12/100", "AQUECER
+ * 24/64", "PASS 12/63", "SEED 1/6" -- e o ui_header() normal poe o passo da
+ * cerimonia ao lado, na mesma barra. Duas fraccoes lado a lado, sem nada a
+ * dizer qual e' qual, lidas de relance num ecra de 128x64: confirmado como
+ * fonte real de confusao a 05/08/2026 ("o contador de passo nao bate certo
+ * com onde estas"). Nestes cinco ecras, a fraccao local ja diz tudo o que
+ * interessa; o passo da cerimonia so' acrescenta ruido. */
+static void ui_header_bare(const char *title)
+{
+    char bar[HSV3_OLED_COLS + 1];
+    size_t tlen;
+
+    memset(bar, ' ', HSV3_OLED_COLS);
+    bar[HSV3_OLED_COLS] = '\0';
+
+    tlen = strlen(title);
+    if (tlen > HSV3_OLED_COLS - 2) tlen = HSV3_OLED_COLS - 2;
+    memcpy(bar + 1, title, tlen);
+
+    hsv3_oled_text_inv(0, 0, bar);
+}
+
 static void ui_hint(const char *hint)
 {
     if (hint == NULL || *hint == '\0') return;
@@ -146,6 +177,23 @@ static void screen(const char *title, const char *l0, const char *l1,
 
     hsv3_oled_clear();
     ui_header(title);
+    for (int i = 0; i < 4; i++) {
+        if (body[i] != NULL && body[i][0] != '\0') hsv3_oled_text(0, 2 + i, body[i]);
+    }
+    ui_hint(hint);
+    hsv3_oled_flush();
+}
+
+/* Como screen(), mas com ui_header_bare() -- ver ali o porque. So' o
+ * show_words() precisa disto, para as paginas "SEED 1/6" nao ganharem
+ * tambem o passo da cerimonia ao lado. */
+static void screen_bare(const char *title, const char *l0, const char *l1,
+                        const char *l2, const char *l3, const char *hint)
+{
+    const char *body[4] = { l0, l1, l2, l3 };
+
+    hsv3_oled_clear();
+    ui_header_bare(title);
     for (int i = 0; i < 4; i++) {
         if (body[i] != NULL && body[i][0] != '\0') hsv3_oled_text(0, 2 + i, body[i]);
     }
@@ -264,7 +312,7 @@ static void tap_redraw(int taps, int pct)
     snprintf(buf, sizeof(buf), "%s %u/%u",
              g_pick.kind == HSV3_PHYS_DICE ? "DADOS" : "MOEDA",
              (unsigned)have, (unsigned)need);
-    ui_header(buf);
+    ui_header_bare(buf);
     hsv3_oled_bar(0, 9, 128, 6, need ? (int)(have * 100 / need) : 0);
 
     if (taps >= 1 && taps <= faces) {
@@ -332,7 +380,7 @@ static void collect_physical(hsv3_phys_kind_t kind)
         snprintf(l0, sizeof(l0), "%s %u/%u",
                  kind == HSV3_PHYS_DICE ? "DADOS" : "MOEDA",
                  (unsigned)have, (unsigned)need);
-        ui_header(l0);
+        ui_header_bare(l0);
         hsv3_oled_bar(0, 9, 128, 6, need ? (int)(have * 100 / need) : 0);
 
         hsv3_oled_text(2, 3, "toca o valor que");
@@ -394,7 +442,7 @@ static void warm_up_timing(const char *reset_why, int rtc_survived)
 
         hsv3_oled_clear();
         snprintf(l, sizeof(l), "AQUECER %u/%u", n, (unsigned)HSV3_TIMING_MIN_EVENTS);
-        ui_header(l);
+        ui_header_bare(l);
 
         hsv3_oled_bar(0, 25, 128, 7, (int)(n * 100u / HSV3_TIMING_MIN_EVENTS));
 
@@ -531,7 +579,7 @@ static void show_words(const char *mnemonic, const char *title, int total)
             if (w < n) snprintf(l[i], sizeof(l[i]), "%2d. %s", w + 1, words[w]);
             else       l[i][0] = '\0';
         }
-        screen(hdr, l[0], l[1], l[2], l[3], dica);
+        screen_bare(hdr, l[0], l[1], l[2], l[3], dica);
 
         if (wait_confirm() == HSV3_BTN_LONG) page++;
         else if (page > 0)                   page--;
@@ -742,7 +790,7 @@ static void pass_menu_redraw(int idx)
     hsv3_oled_clear();
     snprintf(l, sizeof(l), "PASS %u/%u",
              (unsigned)strlen(g_secrets.passphrase), (unsigned)HSV3_PASS_MAX);
-    ui_header(l);
+    ui_header_bare(l);
     pass_draw_text(2);            /* linhas 2-4: o que ja esta escrito */
     if (idx < PASS_NGROUPS)       snprintf(l, sizeof(l), "> %s", PASS_GROUP_NAMES[idx]);
     else if (idx == PASS_NGROUPS) snprintf(l, sizeof(l), "> APAGAR O ULTIMO");

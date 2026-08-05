@@ -85,6 +85,50 @@ def literais_c(src):
     return out
 
 
+def sem_comentarios(src):
+    """O mesmo codigo, com os comentarios trocados por espacos (mesmo
+    comprimento e mesmas linhas, para numeros de linha continuarem certos).
+
+    Existe para contar CHAMADAS a uma funcao sem contar as vezes que o nome
+    dela e' so' mencionado num comentario -- foi assim que uma contagem
+    ingénua de "ui_header_bare(" ficou sempre acima do limiar, mesmo depois
+    de uma mutacao remover uma chamada a serio: havia comentarios de proposito
+    a explicar a funcao, e cada um somava ao total sem nunca ser uma chamada.
+    """
+    out = []
+    i, n = 0, len(src)
+    while i < n:
+        c = src[i]
+        if c == "/" and i + 1 < n and src[i + 1] == "/":
+            j = src.find("\n", i)
+            j = n if j < 0 else j
+            out.append(" " * (j - i))
+            i = j
+        elif c == "/" and i + 1 < n and src[i + 1] == "*":
+            j = src.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            out.append("".join(ch if ch == "\n" else " " for ch in src[i:j]))
+            i = j
+        elif c == "'":
+            start = i
+            i += 1
+            while i < n and src[i] != "'":
+                i += 2 if src[i] == "\\" else 1
+            i = min(i + 1, n)
+            out.append(src[start:i])
+        elif c == '"':
+            start = i
+            i += 1
+            while i < n and src[i] != '"':
+                i += 2 if src[i] == "\\" else 1
+            i = min(i + 1, n)
+            out.append(src[start:i])
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def corpo(src, assinatura):
     """O corpo de uma funcao C, contando chavetas."""
     i = src.index(assinatura)
@@ -245,6 +289,22 @@ fora = [m.group(1) for m in re.finditer(r'hsv3_oled_text\(0,\s*7,\s*"([^"]*)"', 
        if len(m.group(1)) > 9]
 ver("nada na linha 7 do tap_redraw passa de 9 colunas (sobrepunha a barra)",
     not fora, f"{fora}")
+
+# Cinco ecras tem titulo com fraccao propria (DADOS N/100, AQUECER N/64,
+# PASS N/63, SEED/PASSPHRASE N/6) e por isso usam ui_header_bare()/
+# screen_bare() em vez das versoes com passo -- senao ficam DUAS fraccoes na
+# mesma barra, que foi a fonte real de confusao apanhada em hardware a
+# 05/08/2026 ("o contador de passo nao bate certo com onde estas"). Nao se
+# fixa cada local por linha (seria fragil a qualquer refactor pequeno); conta-
+# se que as variantes "bare" estao mesmo a ser CHAMADAS -- sem comentarios,
+# que so' mencionam o nome e nao mexem em nada se forem apagados.
+MAIN_SC = sem_comentarios(MAIN)
+n_bare_header = len(re.findall(r"\bui_header_bare\(", MAIN_SC)) - 2   # -2 = definicao + a chamada de screen_bare()
+n_bare_screen = len(re.findall(r"\bscreen_bare\(", MAIN_SC)) - 1      # -1 = definicao
+ver("os ecras com fraccao propria usam ui_header_bare (sem o passo N/8)",
+    n_bare_header >= 4, f"so {n_bare_header} chamadas (esperava >=4)")
+ver("show_words usa screen_bare (sem o passo N/8) nas suas paginas",
+    n_bare_screen >= 1, f"so {n_bare_screen} chamadas (esperava >=1)")
 
 
 # ---------------------------------------------------------------------------
