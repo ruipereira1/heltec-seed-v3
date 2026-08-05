@@ -31,13 +31,13 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 | Invariantes do código + mutações | **feito** (39 invariantes, 18 mutações, todas apanhadas) |
 | Testes de saúde da entropia (SP 800-90B) | **feito e testado** — RCT e APT correm durante a recolha |
 | Min-entropia medida da fonte de jitter | **feito** — 1,96 bits/amostra nesta placa; a extração original só via 0,014 (corrigida) |
-| Firmware | **281 776 bytes**, sha256 `55d6c477…` |
+| Firmware | **281 808 bytes**, sha256 `c31f1324…` |
 | Build reprodutível (Docker + IDF v5.3.2 fixado) | **feito**, por correr |
 | Atestação do que está gravado na placa | **feita** — app e bootloader lidos de volta, hashes iguais |
 
 O que está marcado como testado foi mesmo executado nesta máquina. O firmware
 está gravado na placa e o que lá está foi confirmado byte a byte contra o
-binário compilado (`55d6c477…`). **Mas gravar não é o mesmo que funcionar**:
+binário compilado (`c31f1324…`). **Mas gravar não é o mesmo que funcionar**:
 a cerimónia ainda não correu de ponta a ponta até ao fim — está em curso.
 O núcleo criptográfico e o verificador, esses, estão testados a sério.
 
