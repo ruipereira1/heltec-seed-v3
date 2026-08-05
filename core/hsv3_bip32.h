@@ -17,13 +17,16 @@ extern "C" {
 #define HSV3_HARDENED   0x80000000u
 #define HSV3_XKEY_MAX   120   /* uma chave estendida em base58 tem 111 chars */
 
-/* Versoes SLIP-0132. O prefixo so muda a apresentacao; a chave e a mesma. */
+/* Versoes SLIP-0132. O prefixo so muda a apresentacao; a chave e a mesma.
+ *
+ * So as publicas mais o XPRV (usado nos testes contra os vetores oficiais do
+ * BIP32). Faltam de proposito YPRV e ZPRV: este dispositivo nunca mostra uma
+ * chave privada estendida no ecra, so as publicas de cada conta -- a mesma
+ * razao por que nao ha CKDpub aqui em cima. */
 #define HSV3_VER_XPRV 0x0488ADE4u
 #define HSV3_VER_XPUB 0x0488B21Eu
-#define HSV3_VER_YPRV 0x049D7878u   /* BIP49 */
-#define HSV3_VER_YPUB 0x049D7CB2u
-#define HSV3_VER_ZPRV 0x04B2430Cu   /* BIP84 */
-#define HSV3_VER_ZPUB 0x04B24746u
+#define HSV3_VER_YPUB 0x049D7CB2u   /* BIP49 */
+#define HSV3_VER_ZPUB 0x04B24746u   /* BIP84 */
 
 typedef struct {
     uint8_t  priv[32];

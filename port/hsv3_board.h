@@ -13,8 +13,6 @@
 #define HSV3_PIN_OLED_RST   21
 #define HSV3_PIN_VEXT       36   /* alimenta o OLED; activo-BAIXO */
 
-#define HSV3_PIN_LED        35
-
 /* SX1262. Nunca inicializado -- ver hsv3_radio_off.c */
 #define HSV3_PIN_LORA_CS     8
 #define HSV3_PIN_LORA_SCK    9

@@ -25,6 +25,14 @@ Para reconfirmar a qualquer momento:
 Get-CimInstance Win32_PnPEntity | Where-Object { $_.Name -match 'COM\d+|CP210|USB JTAG' } | Select-Object Name
 ```
 
+Se estiveres a testar vários cabos, `tools/detetar_placa.py` faz o mesmo mas
+fica a vigiar em contínuo — corre-o, troca de cabo, e vês o resultado na
+hora, sem repetir o comando a cada tentativa:
+
+```sh
+python tools/detetar_placa.py
+```
+
 ---
 
 ## Instalar o ESP-IDF
