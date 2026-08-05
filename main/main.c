@@ -274,20 +274,30 @@ static void tap_redraw(int taps, int pct)
         hsv3_oled_bigchar(56, 26, (char)(g_pick.base + taps - 1), 3);
         snprintf(buf, sizeof(buf), "%d toque%s", taps, taps == 1 ? "" : "s");
         hsv3_oled_text(0, 7, buf);
-        hsv3_oled_bar(56, 57, 72, 6, pct);   /* conta-decrescente ate gravar */
     } else if (taps == faces + 1) {
         hsv3_oled_text(3, 3, "APAGAR O ULTIMO");
         hsv3_oled_text(0, 5, "um toque a menos");
-        ui_hint("para gravar um valor");
+        hsv3_oled_text(0, 7, "apaga");
     } else if (taps == faces + 2 && have >= need) {
         hsv3_oled_text(6, 3, "TERMINAR");
         hsv3_oled_text(0, 5, "os lancamentos ficam");
-        ui_hint("larga para acabar");
+        hsv3_oled_text(0, 7, "termina");
     } else {
         hsv3_oled_text(4, 3, "TOQUES A MAIS");
         hsv3_oled_text(0, 5, "nada foi gravado");
-        ui_hint("espera e repete");
+        hsv3_oled_text(0, 7, "repete");
     }
+
+    /* A barra decrescente e' a MESMA em qualquer gesto, nao so no digito.
+     * A falta dela nos gestos de 7 e 8 toques (apagar/terminar) foi o que fez
+     * um "8 toques" real na placa nao terminar: sem ela, quem tenta acertar o
+     * gesto nao tem como saber se falta 1 segundo ou 50 ms antes da janela de
+     * pausa fechar. Confirmado em hardware a 05/08/2026.
+     *
+     * A barra comeca em x=56 (col 9.3): qualquer texto nesta linha tem de
+     * acabar antes disso, senao sobrepoe-se -- foi o proprio erro que este
+     * comentario documenta ter sido apanhado na primeira tentativa. */
+    hsv3_oled_bar(56, 57, 72, 6, pct);
 
     hsv3_oled_flush();
 }

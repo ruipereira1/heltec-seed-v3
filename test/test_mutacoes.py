@@ -141,6 +141,16 @@ MUTACOES = [
      "port/hsv3_rng.h",
      [("#define HSV3_APT_CUTOFF  311", "#define HSV3_APT_CUTOFF  900")],
      "o corte APT do firmware bate com o SP 800-90B"),
+
+    # Este e' o bug real que aconteceu ao ligar a barra de progresso aos
+    # gestos de apagar/terminar: o texto da linha 7 ficou comprido de mais e
+    # sobrepos-se a barra. So foi apanhado por releitura manual -- esta
+    # mutacao prova que, agora, o test_invariantes.py tambem o apanharia.
+    ("o texto da linha 7 volta a ser comprido de mais e sobrepoe a barra",
+     "main/main.c",
+     [('hsv3_oled_text(0, 7, "termina");',
+       'hsv3_oled_text(0, 7, "termina a cerimonia agora");')],
+     "sobrepunha a barra"),
 ]
 
 

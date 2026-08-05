@@ -235,6 +235,17 @@ ver("nada escreve texto na linha 6 (onde esta o filete)",
     "o put_char do driver ATRIBUI o byte da pagina; texto na linha 6\n"
     "apagaria o filete. Ha um teste em test_port.c que prova isso.")
 
+# tap_redraw() poe uma barra de progresso em x=56..128 na MESMA linha (y=57)
+# onde tambem escreve texto a partir de x=0. Um texto comprido de mais
+# sobrepoe-se a barra -- foi exatamente o que aconteceu ao juntar a barra aos
+# gestos de apagar/terminar em 05/08/2026, apanhado so' por releitura manual,
+# nao por nenhum teste. 9 colunas (54px) e' o maximo que cabe antes de x=56.
+tr = corpo(MAIN, "static void tap_redraw(")
+fora = [m.group(1) for m in re.finditer(r'hsv3_oled_text\(0,\s*7,\s*"([^"]*)"', tr)
+       if len(m.group(1)) > 9]
+ver("nada na linha 7 do tap_redraw passa de 9 colunas (sobrepunha a barra)",
+    not fora, f"{fora}")
+
 
 # ---------------------------------------------------------------------------
 print("A BUILD DE MEDICAO NAO GERA SEEDS")
