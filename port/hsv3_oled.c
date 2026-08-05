@@ -193,28 +193,6 @@ void hsv3_oled_bigchar(int x, int y, char ch, int scale)
     }
 }
 
-/* Avanco horizontal a uma dada escala: as 5 colunas do glifo mais uma de
- * espaco, tudo ampliado. */
-static int big_advance(int scale)
-{
-    return (HSV3_FONT_WIDTH + 1) * scale;
-}
-
-int hsv3_oled_bigcols(int scale)
-{
-    if (scale < 1) scale = 1;
-    return HSV3_OLED_WIDTH / big_advance(scale);
-}
-
-void hsv3_oled_bigtext(int x, int y, const char *s, int scale)
-{
-    if (scale < 1) scale = 1;
-    for (; *s; s++, x += big_advance(scale)) {
-        if (x >= HSV3_OLED_WIDTH) break;
-        if (*s != ' ') hsv3_oled_bigchar(x, y, *s, scale);
-    }
-}
-
 void hsv3_oled_hline(int x0, int x1, int y, int on)
 {
     for (int x = x0; x <= x1; x++) set_pixel(x, y, on);

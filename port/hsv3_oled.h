@@ -27,22 +27,18 @@ void hsv3_oled_text_inv(int col, int row, const char *s);
 
 /* Caractere ampliado, desenhado a pixel. Existe para o valor do dado: e' a
  * unica coisa no ecra que nao pode ser mal lida, por isso nao pode ter o mesmo
- * tamanho que o texto de ajuda. Com scale=3 fica 15x21 pixeis. */
+ * tamanho que o texto de ajuda. Com scale=3 fica 15x21 pixeis.
+ *
+ * Houve aqui tambem um hsv3_oled_bigtext(), para um modo de letras grandes em
+ * linhas inteiras (hex, palavras). Foi removido: o cabecalho da pagina
+ * continuava na fonte pequena (para caber o contador de passo), por isso um
+ * ecra em modo grande media o hex em letras enormes mas o numero da pagina --
+ * "E_CHIP 1/4" vs "2/4" -- ficava tao pequeno como sempre. Para quem escolhia
+ * letras grandes precisamente por nao ler bem a fonte pequena, esse numero era
+ * ilegivel, e duas paginas seguidas do mesmo valor pareciam a mesma coisa
+ * repetida. Confirmado em hardware a 05/08/2026. Misturar dois tamanhos no
+ * mesmo ecra criava mais confusao do que resolvia; uma fonte so, sempre. */
 void hsv3_oled_bigchar(int x, int y, char ch, int scale);
-
-/* Uma linha inteira ampliada, para o modo de letras grandes.
- *
- * A escala 2 cada caractere ocupa 10x14 pixeis e avanca 12, por isso cabem 10
- * numa linha em vez de 21. Metade do texto por ecra, mas legivel por quem nao
- * tem vista de aguia -- e o hex e as 24 palavras sao precisamente o que se
- * copia a mao e onde um caractere mal lido custa a carteira.
- *
- * Ao contrario do hsv3_oled_text(), isto desenha a pixel e COMBINA com o que ja
- * la esta, em vez de atribuir o byte da pagina. Pode sobrepor-se a graficos. */
-void hsv3_oled_bigtext(int x, int y, const char *s, int scale);
-
-/* Quantos caracteres cabem numa linha a esta escala. */
-int hsv3_oled_bigcols(int scale);
 
 /* Linha horizontal, para separar zonas do ecra. */
 void hsv3_oled_hline(int x0, int x1, int y, int on);

@@ -190,31 +190,6 @@ static void halt_forever(const char *why, const char *detail)
     }
 }
 
-/* --- tamanho da letra ---------------------------------------------------- */
-/*
- * A fonte 5x7 poe 21 caracteres por linha, o que e' muito texto num painel de
- * 128x64 -- e o hex e as 24 palavras sao precisamente o que se copia a mao,
- * onde um caractere mal lido custa a carteira.
- *
- * Em letras grandes cabe metade por linha e sao precisos mais ecras. E' uma
- * troca, e por isso e' uma escolha e nao uma imposicao: quem ve bem nao tem de
- * pagar os ecras a mais, e quem nao ve nao tem de adivinhar.
- */
-static int g_grande;
-
-static void tamanho_redraw(int idx)
-{
-    hsv3_oled_clear();
-    ui_header("TAMANHO");
-    hsv3_oled_text(0, 2, idx == 0 ? "> normal" : "  normal");
-    hsv3_oled_text(0, 3, idx == 1 ? "> grandes" : "  grandes");
-    /* amostra viva de cada um, para a escolha ser pelo que se ve */
-    if (idx == 0) hsv3_oled_text(1, 5, "a41f 08c2 9e33 7b50");
-    else          hsv3_oled_bigtext(4, 38, "a41f 08c2", 2);
-    ui_hint("manter = escolher");
-    hsv3_oled_flush();
-}
-
 /* Mostra os 64 hex NUM ecra so, em grupos de quatro e com o numero da linha.
  *
  *      1 a41f 08c2 9e33 7b50
@@ -233,40 +208,18 @@ static void show_hex32(const char *title, const uint8_t v[32])
     char hex[65];
     hsv3_hex32(v, hex);
 
-    if (g_grande) {
-        /* Uma linha da folha por ecra: quatro ecras, cada um com os 16 hex
-         * daquela linha partidos em dois grupos de oito. O "n/4" do titulo diz
-         * exatamente qual das quatro linhas numeradas da folha estas a
-         * preencher, por isso nao ha como perder a conta. */
-        for (int r = 0; r < 4; r++) {
-            const char *p = hex + r * 16;
-            char hdr[22], a[10], b[10];
-            snprintf(hdr, sizeof(hdr), "%s %d/4", title, r + 1);
-            snprintf(a, sizeof(a), "%.4s %.4s", p, p + 4);
-            snprintf(b, sizeof(b), "%.4s %.4s", p + 8, p + 12);
-
-            hsv3_oled_clear();
-            ui_header(hdr);
-            hsv3_oled_bigtext(4, 16, a, 2);
-            hsv3_oled_bigtext(4, 34, b, 2);
-            ui_hint("copia. manter = ok");
-            hsv3_oled_flush();
-            wait_long();
-        }
-    } else {
-        hsv3_oled_clear();
-        ui_header(title);
-        for (int r = 0; r < 4; r++) {
-            char l[22];
-            const char *p = hex + r * 16;
-            snprintf(l, sizeof(l), "%d %.4s %.4s %.4s %.4s",
-                     r + 1, p, p + 4, p + 8, p + 12);
-            hsv3_oled_text(0, 2 + r, l);
-        }
-        ui_hint("copia. manter = ok");
-        hsv3_oled_flush();
-        wait_long();
+    hsv3_oled_clear();
+    ui_header(title);
+    for (int r = 0; r < 4; r++) {
+        char l[22];
+        const char *p = hex + r * 16;
+        snprintf(l, sizeof(l), "%d %.4s %.4s %.4s %.4s",
+                 r + 1, p, p + 4, p + 8, p + 12);
+        hsv3_oled_text(0, 2 + r, l);
     }
+    ui_hint("copia. manter = ok");
+    hsv3_oled_flush();
+    wait_long();
     hsv3_wipe(hex, sizeof(hex));
 }
 
@@ -556,38 +509,19 @@ static void show_words(const char *mnemonic, const char *title, int total)
 
     /* Com paginacao para tras: quem se perder a copiar volta atras em vez de
      * ter de repetir a cerimonia inteira. */
-    const int por_pagina = g_grande ? 3 : 4;
-    const int paginas = (n + por_pagina - 1) / por_pagina;
+    const int paginas = (n + 3) / 4;
 
     for (int page = 0; page < paginas; ) {
-        char hdr[22];
+        char hdr[22], l[4][22];
         snprintf(hdr, sizeof(hdr), "%s %d/%d", title, page + 1, paginas);
         const char *dica = page > 0 ? "toque=atras manter=ok" : "manter = continuar";
 
-        if (g_grande) {
-            hsv3_oled_clear();
-            ui_header(hdr);
-            for (int i = 0; i < 3; i++) {
-                int w = page * 3 + i;
-                if (w >= n) break;
-                /* "12.abandon" sao 10 caracteres, o maximo que cabe a escala 2.
-                 * O buffer e maior do que o preciso porque o compilador nao
-                 * sabe que w+1 nunca passa de 24. */
-                char l[24];
-                snprintf(l, sizeof(l), "%d.%s", w + 1, words[w]);
-                hsv3_oled_bigtext(0, 10 + i * 15, l, 2);
-            }
-            ui_hint(dica);
-            hsv3_oled_flush();
-        } else {
-            char l[4][22];
-            for (int i = 0; i < 4; i++) {
-                int w = page * 4 + i;
-                if (w < n) snprintf(l[i], sizeof(l[i]), "%2d. %s", w + 1, words[w]);
-                else       l[i][0] = '\0';
-            }
-            screen(hdr, l[0], l[1], l[2], l[3], dica);
+        for (int i = 0; i < 4; i++) {
+            int w = page * 4 + i;
+            if (w < n) snprintf(l[i], sizeof(l[i]), "%2d. %s", w + 1, words[w]);
+            else       l[i][0] = '\0';
         }
+        screen(hdr, l[0], l[1], l[2], l[3], dica);
 
         if (wait_confirm() == HSV3_BTN_LONG) page++;
         else if (page > 0)                   page--;
@@ -965,10 +899,9 @@ void app_main(void)
         halt_forever("fonte de entropia", "nao arrancou");
     }
 
-    /* 4. tamanho da letra, antes de haver o que copiar */
+    /* 4. botao */
     g_step = 2;
     hsv3_buttons_init();
-    g_grande = hsv3_buttons_select(2, 0, tamanho_redraw);
 
     /* 5. aquecimento: toques suficientes para fechar a fonte de timing, que tem
      * de entrar no E_chip -- e o E_chip tem de estar comprometido antes do

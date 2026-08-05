@@ -314,44 +314,6 @@ static void test_oled(void)
         ok("barra a 100% enche", dentro > 120);
     }
 
-    /* --- letras grandes: o modo para quem nao ve bem --- */
-    ok("a escala 2 poe 10 caracteres por linha", hsv3_oled_bigcols(2) == 10);
-    ok("a escala 1 poe os mesmos 21 do texto normal", hsv3_oled_bigcols(1) == 21);
-    ok("a escala 3 poe 7", hsv3_oled_bigcols(3) == 7);
-
-    /* Dez caracteres a escala 2 tem de caber; o 11o nao pode transbordar. */
-    hsv3_oled_clear();
-    hsv3_oled_bigtext(0, 16, "0123456789", 2);
-    {
-        int fora = 0, dentro = 0;
-        for (int y = 0; y < HSV3_OLED_HEIGHT; y++) {
-            for (int x = 0; x < HSV3_OLED_WIDTH; x++) {
-                if (!pix(x, y)) continue;
-                dentro++;
-                if (y < 16 || y >= 16 + 14) fora++;
-            }
-        }
-        ok("bigtext desenha os dez", dentro > 60);
-        ok("bigtext fica na sua faixa de 14 pixeis", fora == 0);
-    }
-
-    /* O espaco nao acende nada, mas ocupa o lugar: e' o que separa os grupos
-     * de quatro no hex. */
-    hsv3_oled_clear();
-    hsv3_oled_bigtext(0, 16, "a a", 2);
-    {
-        int col_meio = 0;
-        for (int y = 16; y < 30; y++) if (pix(12 + 2, y)) col_meio = 1;
-        ok("o espaco a escala 2 fica mesmo em branco", !col_meio);
-    }
-
-    /* A linha do hex em modo grande -- "a41f 08c2" -- tem de caber. */
-    ok("os 9 caracteres de um grupo de hex cabem a escala 2",
-       (int)strlen("a41f 08c2") <= hsv3_oled_bigcols(2));
-    /* E a palavra mais comprida com o numero: "24.abandon" = 10. */
-    ok("a palavra mais comprida numerada cabe a escala 2",
-       (int)strlen("24.abandon") <= hsv3_oled_bigcols(2));
-
     /* Um caractere fora de ASCII imprimivel vira '?' em vez de ler fora do
      * array da fonte. */
     hsv3_oled_clear();
