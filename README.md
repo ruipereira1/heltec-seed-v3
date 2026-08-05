@@ -37,9 +37,9 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 
 O que está marcado como testado foi mesmo executado nesta máquina. O firmware
 está gravado na placa e o que lá está foi confirmado byte a byte contra o
-binário compilado. **Mas gravar não é o mesmo que funcionar**: a cerimónia
-nunca correu de ponta a ponta em hardware. O núcleo criptográfico e o
-verificador, esses, estão testados a sério.
+binário compilado (`55d6c477…`). **Mas gravar não é o mesmo que funcionar**:
+a cerimónia ainda não correu de ponta a ponta até ao fim — está em curso.
+O núcleo criptográfico e o verificador, esses, estão testados a sério.
 
 Para instalar: **[docs/INSTALAR.md](docs/INSTALAR.md)**.
 
