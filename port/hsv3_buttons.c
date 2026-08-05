@@ -23,8 +23,7 @@
 /* Nunca zero ticks: com vTaskDelay(0) o laco nao cede o CPU. */
 #define POLL_TICKS   (pdMS_TO_TICKS(5) > 0 ? pdMS_TO_TICKS(5) : 1)
 #define DEBOUNCE_MS    25
-#define SHORT_MAX_MS  350    /* < 350 ms   -> SHORT (muda de opcao)  */
-                             /* >= 350 ms  -> LONG  (escolhe)        */
+#define SHORT_MAX_MS  HSV3_BTN_SHORT_MAX_MS   /* definido no .h: e' contrato, nao detalhe */
 #define MAX_HOLD_MS  4000    /* nao esperar para sempre por uma largada */
 
 static const char *TAG = "btn";
@@ -102,7 +101,7 @@ int hsv3_buttons_last_ms(void)
     return s_last_ms;
 }
 
-#define SCROLL_STEP_MS 400   /* velocidade a que as opcoes passam ao segurar */
+#define SCROLL_STEP_MS HSV3_BTN_SCROLL_STEP_MS   /* definido no .h */
 
 int hsv3_buttons_select(int n_options, int start, void (*redraw)(int idx))
 {
@@ -119,15 +118,24 @@ int hsv3_buttons_select(int n_options, int start, void (*redraw)(int idx))
         int64_t t0 = esp_timer_get_time();
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
 
-        int scrolled = 0;
-        int64_t next_step = t0 + (int64_t)SHORT_MAX_MS * 1000;
+        /* O primeiro passo de rolagem so' acontece SHORT_MAX_MS+SCROLL_STEP_MS
+         * depois do premir, nao logo ao fim de SHORT_MAX_MS.
+         *
+         * A versao anterior punha o primeiro passo exactamente no limiar que
+         * separa toque de manter -- o mesmo limiar que decide "escolher".
+         * Resultado: largar mal se atingisse "manter" escolhia sempre a
+         * opcao SEGUINTE aquela que se estava a ver, nunca a que se via,
+         * porque o avanco automatico disparava no mesmissimo instante em que
+         * largar passava a contar como escolha. Para escolher a letra Q via-se
+         * a letra R. Confirmado em hardware a 05/08/2026, na escrita manual
+         * da passphrase -- e' onde mais se nota, com ate 26 posicoes por
+         * grupo e ate 63 escolhas seguidas. */
+        int64_t next_step = t0 + (int64_t)(SHORT_MAX_MS + SCROLL_STEP_MS) * 1000;
 
         while (pressed(HSV3_PIN_BTN_OK)) {
             int64_t now = esp_timer_get_time();
             if (now >= next_step) {
-                /* passou o limiar: entra em modo de rolagem */
                 cur = (cur + 1) % n_options;
-                scrolled = 1;
                 if (redraw) redraw(cur);
                 next_step = now + (int64_t)SCROLL_STEP_MS * 1000;
             }
@@ -138,9 +146,12 @@ int hsv3_buttons_select(int n_options, int start, void (*redraw)(int idx))
         s_last_ms = (int)held_ms;
         hsv3_rng_timing_feed(esp_cpu_get_cycle_count());
 
-        if (scrolled) {
-            /* largou durante a rolagem -> escolhe o que estava a mostrar */
-            ESP_LOGI(TAG, "rolagem %lldms -> escolhe %d", held_ms, cur);
+        /* Chegou a "manter" (>=SHORT_MAX_MS): escolhe o que esta a ver. Se
+         * ainda nao tinha rolado nenhuma vez, e' o que se via quando largou
+         * a mao, sem ter avancado primeiro -- e' essa a correcao. Se ja
+         * tinha rolado, escolhe onde parou, como sempre. */
+        if (held_ms >= SHORT_MAX_MS) {
+            ESP_LOGI(TAG, "manteve %lldms -> escolhe %d", held_ms, cur);
             return cur;
         }
         /* toque rapido -> so avanca uma posicao, nao escolhe */

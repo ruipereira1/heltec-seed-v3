@@ -61,10 +61,12 @@ CORE_SRC="
 
 # O test_port.c inclui os .c do OLED e do RNG em vez de os ligar, para chegar
 # ao que e' estatico -- o framebuffer so se inspeciona assim. Por isso aqui so
-# entram os que faltam.
+# entram os que faltam. hsv3_buttons.c liga-se normalmente: o teste so precisa
+# da API publica (hsv3_buttons_select), nao dos estaticos internos.
 PORT_SRC="
   $ROOT/core/hsv3_crypto_mbedtls.c
   $ROOT/port/hsv3_font.c
+  $ROOT/port/hsv3_buttons.c
 "
 
 CFLAGS="-std=c11 -O2 -Wall -Wextra -Werror

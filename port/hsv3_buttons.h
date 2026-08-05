@@ -16,12 +16,18 @@
 extern "C" {
 #endif
 
+/* Os dois limiares de tempo, expostos porque sao parte do contrato observavel
+ * -- nao so' detalhe de implementacao. tools e testes no PC precisam deles
+ * para reproduzir gestos com duracoes exactas (ver test/test_port.c). */
+#define HSV3_BTN_SHORT_MAX_MS    350   /* < isto = toque; >= isto = manter */
+#define HSV3_BTN_SCROLL_STEP_MS  400   /* velocidade da rolagem ao segurar */
+
 /* Classificacao exaustiva: qualquer duracao cai numa das duas. Nenhum toque
  * pode ser descartado sem o utilizador ver reaccao nenhuma. */
 typedef enum {
     HSV3_BTN_NONE = 0,
-    HSV3_BTN_SHORT,      /* PRG < 350 ms   -> avanca / muda de opcao */
-    HSV3_BTN_LONG        /* PRG >= 350 ms  -> escolhe / confirma */
+    HSV3_BTN_SHORT,      /* PRG < HSV3_BTN_SHORT_MAX_MS  -> avanca / muda */
+    HSV3_BTN_LONG        /* PRG >= HSV3_BTN_SHORT_MAX_MS -> escolhe / confirma */
 } hsv3_btn_t;
 
 /* Configura o GPIO do PRG com pull-up. */

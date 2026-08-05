@@ -28,10 +28,39 @@ void hsv3_stub_reset(void)
     memset(&hsv3_stub, 0, sizeof(hsv3_stub));
     hsv3_stub.rng_state = 0x12345678u;
     hsv3_stub.cycles = 1000u;
+    hsv3_stub.btn_level0 = 1;   /* solto por omissao, ate um teste agendar algo */
+}
+
+/* Agenda uma sequencia de premir/largar do PRG, em ms relativos ao agora.
+ * ms[] alterna PREMIDO,SOLTO,PREMIDO,SOLTO,... a comecar premido AGORA (a
+ * primeira duracao e' sempre "quanto tempo fica premido"). O ultimo segmento
+ * fica a valer para sempre -- se acabar em "solto", o botao nunca mais e'
+ * premido outra vez, o que e' o caso normal de teste (um gesto, sem mais
+ * nada agendado a seguir).
+ *
+ * Existe para poder testar hsv3_buttons_select() com duracoes exactas, sem
+ * um dedo a serio -- ver test/stubs/driver/gpio.h para o lado que le isto.
+ *
+ * NOTA PARA QUEM MEXER AQUI: a primeira versao disto tinha btn_level0=1
+ * (solto) em vez de 0 (premido), por isso o botao NUNCA chegava a ficar
+ * premido a tempo -- hsv3_buttons_select() ficava preso para sempre em
+ * "espera que carreguem". Apanhado so' porque o build ficou pendurado, nao
+ * por nenhuma verificacao; e' por isso que os testes abaixo tambem checam
+ * quantas vezes redraw() foi chamado, nao so' o valor final. */
+static void stub_agenda_toques(const int *ms, int n)
+{
+    int64_t t = hsv3_stub.now_us;
+    hsv3_stub.btn_level0 = 0;      /* premido desde ja */
+    hsv3_stub.btn_n_flips = 0;
+    for (int i = 0; i < n; i++) {
+        t += (int64_t)ms[i] * 1000;
+        hsv3_stub.btn_flip_at[hsv3_stub.btn_n_flips++] = t;
+    }
 }
 
 #include "../port/hsv3_oled.c"   /* NOLINT -- de proposito: ver o cabecalho */
 #include "../port/hsv3_rng.c"    /* NOLINT */
+#include "hsv3_buttons.h"
 
 static int checks = 0;
 static int fails = 0;
@@ -328,6 +357,89 @@ static void test_oled(void)
     }
 }
 
+/* hsv3_buttons_select(): manter para escolher tem de escolher o que esta a
+ * ver, sem avancar primeiro.
+ *
+ * Bug real, confirmado em hardware a 05/08/2026 na escrita manual da
+ * passphrase: o primeiro passo de rolagem disparava exactamente no limiar que
+ * separa "toque" de "manter" (350ms), por isso largar mal se atingisse esse
+ * limiar escolhia sempre a opcao SEGUINTE a que se estava a ver, nunca a que
+ * se via. Para escolher a letra na posicao K, a pessoa tinha de acertar em
+ * K-1 e adivinhar o instante exacto -- impraticavel em 26 posicoes por grupo,
+ * ate 63 vezes seguidas. */
+static int g_redraws[64];
+static int g_n_redraws;
+
+static void grava_redraw(int idx)
+{
+    if (g_n_redraws < (int)(sizeof(g_redraws) / sizeof(g_redraws[0]))) {
+        g_redraws[g_n_redraws++] = idx;
+    }
+}
+
+static void test_buttons_select(void)
+{
+    int r;
+
+    /* O caso exacto do bug: premir mesmo por cima do limiar (350ms) e largar
+     * logo. Antes da correcao isto devolvia 1 (tinha avancado); tem de
+     * devolver 0 -- o que estava no ecra quando a mao comecou a segurar. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { HSV3_BTN_SHORT_MAX_MS + 50 };
+        stub_agenda_toques(seq, 1);
+    }
+    g_n_redraws = 0;
+    r = hsv3_buttons_select(5, 0, grava_redraw);
+    ok("manter mesmo no limiar escolhe o que se via, nao avanca", r == 0);
+    ok("nao houve nenhum redraw a meio (so o inicial)", g_n_redraws == 1);
+
+    /* Mesma ideia, a comecar deslocado (start=2): tem de devolver 2, nao 3. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { HSV3_BTN_SHORT_MAX_MS + 80 };
+        stub_agenda_toques(seq, 1);
+    }
+    r = hsv3_buttons_select(5, 2, grava_redraw);
+    ok("o mesmo com start!=0: escolhe start, nao start+1", r == 2);
+
+    /* Premir o suficiente para passar UM passo de rolagem (350+400+50ms) tem
+     * de avancar exactamente uma vez, nao ficar parado nem saltar dois. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { HSV3_BTN_SHORT_MAX_MS + HSV3_BTN_SCROLL_STEP_MS + 50 };
+        stub_agenda_toques(seq, 1);
+    }
+    r = hsv3_buttons_select(5, 0, grava_redraw);
+    ok("premir um passo de rolagem inteiro avanca exactamente um", r == 1);
+
+    /* Toque curto (bem abaixo do limiar) nunca escolhe -- so avanca, e a
+     * funcao continua a espera do proximo premir. Agenda-se um toque curto
+     * seguido de um "manter" para o teste nao ficar preso a espera. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { 100, 50, HSV3_BTN_SHORT_MAX_MS + 50 };
+        stub_agenda_toques(seq, 3);
+    }
+    g_n_redraws = 0;
+    r = hsv3_buttons_select(5, 0, grava_redraw);
+    ok("toque curto avanca (redraw intermedio existe)", g_n_redraws >= 2);
+    ok("toque curto avanca para 1, depois o manter escolhe o que ve (1)",
+       g_n_redraws >= 2 && g_redraws[1] == 1 && r == 1);
+
+    /* Avancar tem de dar a volta: em n_options=3 comecando em 2, um toque
+     * curto avanca para 0, nao para 3. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { 100, 50, HSV3_BTN_SHORT_MAX_MS + 50 };
+        stub_agenda_toques(seq, 3);
+    }
+    g_n_redraws = 0;
+    r = hsv3_buttons_select(3, 2, grava_redraw);
+    ok("o avanco da a volta no fim da lista",
+       g_n_redraws >= 2 && g_redraws[1] == 0 && r == 0);
+}
+
 int main(void)
 {
     printf("HELTEC-SEED-V3 -- testes do port/ (com substitutos do ESP-IDF)\n\n");
@@ -337,6 +449,7 @@ int main(void)
     test_jitter();
     test_timing();
     test_oled();
+    test_buttons_select();
 
     printf("\n");
     if (fails) {
