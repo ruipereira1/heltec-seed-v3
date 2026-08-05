@@ -34,10 +34,13 @@ void hsv3_radio_off(void)
     gpio_set_level(HSV3_PIN_LORA_SCK, 0);
     gpio_set_level(HSV3_PIN_LORA_MOSI, 0);
 
-    /* MISO e BUSY sao saidas do radio: ficam como entradas sem pull, para nao
-     * lhes injetar corrente enquanto o chip esta em reset. */
+    /* MISO, BUSY e DIO1 sao saidas do radio (dados e IRQ): ficam como entradas
+     * sem pull, para nao lhes injetar corrente enquanto o chip esta em reset.
+     * DIO1 ficava de fora deste grupo por inconsistencia -- o pino estava
+     * declarado em hsv3_board.h mas nunca usado em lado nenhum. */
     gpio_config_t in_cfg = {
-        .pin_bit_mask = (1ULL << HSV3_PIN_LORA_MISO) | (1ULL << HSV3_PIN_LORA_BUSY),
+        .pin_bit_mask = (1ULL << HSV3_PIN_LORA_MISO) | (1ULL << HSV3_PIN_LORA_BUSY) |
+                        (1ULL << HSV3_PIN_LORA_DIO1),
         .mode         = GPIO_MODE_INPUT,
         .pull_up_en   = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,

@@ -141,15 +141,6 @@ void hsv3_oled_flush(void)
     }
 }
 
-void hsv3_oled_page(const char *lines[])
-{
-    hsv3_oled_clear();
-    for (int r = 0; r < HSV3_OLED_ROWS && lines[r] != NULL; r++) {
-        hsv3_oled_text(0, r, lines[r]);
-    }
-    hsv3_oled_flush();
-}
-
 void hsv3_oled_antiburn_step(void)
 {
     /* Percorre um quadrado de 3x2 pixeis. Imperceptivel a ler, mas chega para

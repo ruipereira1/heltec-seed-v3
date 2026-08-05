@@ -49,9 +49,6 @@ void hsv3_oled_bar(int x, int y, int w, int h, int pct);
 /* Envia o framebuffer para o ecra. Nada aparece sem isto. */
 void hsv3_oled_flush(void);
 
-/* Conveniencia: limpa, escreve as linhas dadas (NULL termina) e envia. */
-void hsv3_oled_page(const char *lines[]);
-
 /* Contra burn-in: desloca a imagem 1 pixel de forma ciclica. As palavras da
  * seed ficam muito tempo no ecra e podem marcar o painel de forma permanente,
  * o que seria uma fuga fisica. Chamar a cada ~20 s enquanto houver segredos

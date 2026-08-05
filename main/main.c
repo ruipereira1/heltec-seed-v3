@@ -278,8 +278,6 @@ static struct {
     hsv3_phys_kind_t kind;
     int faces;
     char base;
-    int idx_del;
-    int idx_end;
 } g_pick;
 
 /* Desenha o ecra durante a contagem de toques.
@@ -370,10 +368,6 @@ static void collect_physical(hsv3_phys_kind_t kind)
         size_t need = hsv3_phys_min(&g_secrets.phys);
         size_t have = g_secrets.phys.count;
         char l0[22];
-
-        snprintf(l0, sizeof(l0), "%s  %u/%u",
-                 kind == HSV3_PHYS_DICE ? "DADOS" : "MOEDA",
-                 (unsigned)have, (unsigned)need);
 
         /* ecra em repouso, a espera do primeiro toque do proximo lancamento */
         hsv3_oled_clear();
@@ -979,7 +973,7 @@ void app_main(void)
                        ? reasons[rr] : "?", s_rtc_survived);
     }
 
-    /* 5. modo de entropia fisica */
+    /* 6. modo de entropia fisica */
     g_step = 3;
     hsv3_phys_kind_t kind = HSV3_PHYS_DICE;
     for (;;) {
@@ -1005,7 +999,7 @@ void app_main(void)
      * mostra-la eram mais 64 caracteres para copiar a mao sem nada de novo. Em
      * transcricao manual, cada valor a menos e' um erro a menos. */
 
-    /* 7. seed em 24 palavras */
+    /* 8. seed em 24 palavras */
     g_step = 5;
     if (hsv3_bip39_from_entropy(g_secrets.entropy, 32, g_secrets.mnemonic,
                                 sizeof(g_secrets.mnemonic)) != HSV3_OK) {
@@ -1059,7 +1053,7 @@ void app_main(void)
         halt_forever("passphrase", "caractere invalido");
     }
 
-    /* 9. derivacao e resultado */
+    /* 10. derivacao e resultado */
     g_step = 7;
     if (hsv3_bip39_seed(g_secrets.mnemonic, g_secrets.passphrase,
                         g_secrets.seed) != HSV3_OK) {
@@ -1070,7 +1064,7 @@ void app_main(void)
     }
     show_results();
 
-    /* 10. limpeza */
+    /* 11. limpeza */
     g_step = 8;
     screen("VERIFICA NO PC", "verify.py --dice ..", "         --chip ..",
            "         --commit ..", "o --commit prende o", "OK = apagar tudo");

@@ -58,9 +58,6 @@ void hsv3_ec_set_rng(int (*cb)(void *, unsigned char *, size_t), void *ctx);
 /* Apaga memoria sensivel sem o compilador poder otimizar a chamada. */
 void hsv3_wipe(void *buf, size_t len);
 
-/* Comparacao em tempo constante. Devolve 0 se forem iguais. */
-int hsv3_memcmp_ct(const void *a, const void *b, size_t len);
-
 #ifdef __cplusplus
 }
 #endif

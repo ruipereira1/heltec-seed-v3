@@ -188,8 +188,3 @@ void hsv3_wipe(void *buf, size_t len)
 {
     mbedtls_platform_zeroize(buf, len);
 }
-
-int hsv3_memcmp_ct(const void *a, const void *b, size_t len)
-{
-    return mbedtls_ct_memcmp(a, b, len);
-}
