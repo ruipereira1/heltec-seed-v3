@@ -183,6 +183,19 @@ ver("o E_chip so e revelado depois dos lancamentos",
 ver("a ronda pede confirmacao de que o compromisso ficou anotado",
     'screen("ESTA ANOTADO?"' in ronda)
 
+# Dois ecras seguidos com o MESMO titulo parecem duas paginas da mesma coisa,
+# mesmo quando um e' so' um aviso e o outro o valor a serio. Foi exactamente
+# isto que aconteceu com "COMPROMISSO": o ecra de aviso e o ecra do valor
+# tinham o titulo identico, byte a byte -- confirmado em hardware a
+# 05/08/2026 e corrigido para "PREPARA-TE" + "COMPROMISSO". Dentro desta
+# funcao, cada titulo tem de ser unico.
+titulos_ronda = re.findall(r'\b(?:screen|show_hex32)\(\s*"([^"]*)"', ronda)
+repetidos = sorted({t for t in titulos_ronda if titulos_ronda.count(t) > 1})
+ver("nenhum titulo se repete dentro de uma ronda de entropia",
+    not repetidos,
+    f"titulos repetidos: {repetidos}\n"
+    f"sequencia inteira: {titulos_ronda}")
+
 
 # ---------------------------------------------------------------------------
 print("FAIL-CLOSED: nenhum caminho degradado em silencio")

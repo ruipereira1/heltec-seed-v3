@@ -163,6 +163,15 @@ MUTACOES = [
        'snprintf(l, sizeof(l), "AQUECER %u/%u", n, (unsigned)HSV3_TIMING_MIN_EVENTS);\n'
        '        ui_header(l);')],
      "os ecras com fraccao propria usam ui_header_bare"),
+
+    # O bug real que o utilizador apanhou em hardware: o ecra de aviso do
+    # compromisso volta a ter o mesmo titulo do ecra que mostra o valor a
+    # serio, e em sequencia parecem duas paginas da mesma coisa.
+    ("o aviso do compromisso volta a ter o mesmo titulo do valor",
+     "main/main.c",
+     [('screen("PREPARA-TE", what, "", "Anota ANTES de",',
+       'screen("COMPROMISSO", what, "", "Anota ANTES de",')],
+     "nenhum titulo se repete dentro de uma ronda de entropia"),
 ]
 
 

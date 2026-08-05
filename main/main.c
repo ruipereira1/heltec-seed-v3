@@ -514,7 +514,12 @@ static void entropy_round(const char *what, hsv3_phys_kind_t kind, uint8_t out[3
         halt_forever("compromisso", "falhou");
     }
 
-    screen("COMPROMISSO", what, "", "Anota ANTES de",
+    /* Titulo distinto do ecra seguinte de proposito: os dois mostravam
+     * "COMPROMISSO" -- um so' o aviso, o outro o valor a serio -- e em
+     * sequencia pareciam duas paginas da mesma coisa. Confirmado em hardware
+     * a 05/08/2026. O REVELACAO/E_FISICA/E_CHIP mais abaixo nunca teve este
+     * problema porque ja tinha titulos distintos. */
+    screen("PREPARA-TE", what, "", "Anota ANTES de",
            "lancar o 1o dado", "OK = mostrar");
     wait_confirm();
     show_hex32("COMPROMISSO", commit);
