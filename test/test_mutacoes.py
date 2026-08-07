@@ -27,7 +27,7 @@ FICHEIROS = [
     "core/hsv3_entropy.c", "core/hsv3_wordlist.c",
     "tools/verify.py", "tools/english.txt", "tools/CONFERIR-A-SEED.bat",
     "tools/entropia.py", "port/hsv3_rng.h", "sdkconfig.defaults",
-    "CMakeLists.txt", "third_party/MBEDTLS-PIN.txt",
+    "CMakeLists.txt", "third_party/MBEDTLS-PIN.txt", "Dockerfile",
 ]
 
 # (nome, ficheiro, [(antes, depois), ...], texto que a queixa tem de conter)
@@ -172,6 +172,13 @@ MUTACOES = [
      [('screen("PREPARA-TE", what, "", "Anota ANTES de",',
        'screen("COMPROMISSO", what, "", "Anota ANTES de",')],
      "nenhum titulo se repete dentro de uma ronda de entropia"),
+
+    ("a imagem base do Dockerfile volta a ser so' uma tag, sem digest",
+     "Dockerfile",
+     [("FROM espressif/idf:v5.3.2@sha256:"
+       "5b8f58d9d9caa45b689a31a0b6a0cc53b84594e0ba5fdd8d28eeef7d6123242a",
+       "FROM espressif/idf:v5.3.2")],
+     "fixada por digest sha256"),
 ]
 
 

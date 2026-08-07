@@ -9,8 +9,10 @@
 #   sha256sum out/heltec-seed-v3.bin
 #
 # A versao do ESP-IDF esta fixada por digest, nao por tag: uma tag pode ser
-# movida, um digest nao.
-FROM espressif/idf:v5.3.2
+# movida, um digest nao. O digest abaixo corresponde a tag v5.3.2 (o "FROM"
+# tambem funciona sem a tag no comentario -- ela e' so' para um humano
+# reconhecer a versao a olho).
+FROM espressif/idf:v5.3.2@sha256:5b8f58d9d9caa45b689a31a0b6a0cc53b84594e0ba5fdd8d28eeef7d6123242a
 
 # Datas fixas para o compilador nao embeber a hora do build no binario.
 ENV SOURCE_DATE_EPOCH=1735689600

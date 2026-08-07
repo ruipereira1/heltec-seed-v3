@@ -418,6 +418,24 @@ else:
 
 
 # ---------------------------------------------------------------------------
+print("A IMAGEM DO BUILD REPRODUTIVEL E A QUE FOI FIXADA")
+# ---------------------------------------------------------------------------
+
+# O mesmo motivo do mbedTLS: "FROM espressif/idf:v5.3.2" sem digest deixa a
+# tag apontar para outra imagem amanha sem ninguem dar por isso, e o
+# comentario ao lado do FROM ja promete "fixado por digest, nao por tag".
+DOCKERFILE = ler("Dockerfile")
+m = re.search(r"^FROM\s+(\S+)", DOCKERFILE, re.M)
+ver("o Dockerfile tem uma linha FROM", m is not None)
+if m:
+    ver("a imagem base esta fixada por digest sha256, nao so por tag",
+        re.search(r"@sha256:[0-9a-f]{64}$", m.group(1)) is not None,
+        f"FROM atual: {m.group(1)}\n"
+        "uma tag (\"v5.3.2\") pode passar a apontar para outra imagem; "
+        "so o digest e' imutavel.")
+
+
+# ---------------------------------------------------------------------------
 print("A WORDLIST E A MESMA NOS DOIS LADOS")
 # ---------------------------------------------------------------------------
 
