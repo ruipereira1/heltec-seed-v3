@@ -69,8 +69,19 @@ hsv3_btn_t hsv3_buttons_wait(int timeout_ms)
         /* O cronometro arranca ANTES do debounce. Se arrancasse depois, todos
          * os toques mediam 25 ms a menos do que duraram de facto. */
         int64_t t0 = esp_timer_get_time();
-        ESP_LOGI(TAG, "premido");
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
+
+        /* Confirma que continua premido depois do debounce. Sem isto, um
+         * ruido eletrico mais curto que 25ms -- um bounce do proprio
+         * interruptor -- regista um toque inteiro: le-se premido uma vez,
+         * espera-se o debounce, e o "while (pressed())" que se segue nunca
+         * chega a executar porque ja largou, dando held_ms~=25ms, classificado
+         * como SHORT sem ninguem ter tocado a serio. Apanhado por releitura,
+         * nao por hardware -- mas o padrao repete-se nas tres funcoes deste
+         * ficheiro, por isso vale a pena fechar aqui. */
+        if (!pressed(HSV3_PIN_BTN_OK)) continue;
+
+        ESP_LOGI(TAG, "premido");
 
         /* A duracao decide o evento. */
         while (pressed(HSV3_PIN_BTN_OK)) {
@@ -117,6 +128,11 @@ int hsv3_buttons_select(int n_options, int start, void (*redraw)(int idx))
         hsv3_rng_timing_feed(esp_cpu_get_cycle_count());
         int64_t t0 = esp_timer_get_time();
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
+
+        /* Ruido mais curto que o debounce nao conta -- ver o mesmo bloco em
+         * hsv3_buttons_wait() para a explicacao completa. Aqui volta-se a
+         * "espera que carreguem" sem mexer em cur nem chamar redraw. */
+        if (!pressed(HSV3_PIN_BTN_OK)) continue;
 
         /* O primeiro passo de rolagem so' acontece SHORT_MAX_MS+SCROLL_STEP_MS
          * depois do premir, nao logo ao fim de SHORT_MAX_MS.
@@ -165,13 +181,25 @@ int hsv3_buttons_count_taps(int pause_ms, void (*redraw)(int taps, int pct))
 {
     int taps = 0;
 
-    /* espera pelo primeiro toque, sem limite de tempo */
-    while (!pressed(HSV3_PIN_BTN_OK)) vTaskDelay(POLL_TICKS);
-
     for (;;) {
-        /* conta este toque e espera que largue */
+        /* Espera por um premir a serio. O primeiro toque e os seguintes
+         * passam todos por aqui -- antes so' o primeiro tinha esta espera
+         * explicita, e os seguintes confiavam so' no "pressed()" que ja
+         * tinha sido visto na janela de pausa mais abaixo. Uniformizado para
+         * que o passo de confirmacao do debounce (a seguir) se aplique
+         * sempre, nao so' ao primeiro toque. */
+        while (!pressed(HSV3_PIN_BTN_OK)) vTaskDelay(POLL_TICKS);
+
         hsv3_rng_timing_feed(esp_cpu_get_cycle_count());
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));
+
+        /* Ruido mais curto que o debounce nao conta como toque. Isto e' o
+         * mais importante dos tres sitios onde este bloco aparece: uma
+         * contagem de toques a mais aqui e' um digito a mais na seed -- ver
+         * o mesmo bloco em hsv3_buttons_wait() para a explicacao completa. */
+        if (!pressed(HSV3_PIN_BTN_OK)) continue;
+
+        /* confirmado: espera que largue */
         while (pressed(HSV3_PIN_BTN_OK)) vTaskDelay(POLL_TICKS);
         hsv3_rng_timing_feed(esp_cpu_get_cycle_count());
         taps++;

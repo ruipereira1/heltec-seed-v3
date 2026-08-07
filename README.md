@@ -24,20 +24,20 @@ anos, até serem varridos ~594 BTC de ~500 carteiras a 31/07/2026.
 | `tools/verify.py` — verificador independente | **feito e testado** (150 verificações contra vetores oficiais) |
 | `core/` — entropia, compromisso, BIP39, BIP32, base58, bech32 | **feito e testado** (388 verificações) |
 | Confronto C ↔ Python | **feito** (275 campos, 0 divergências) |
-| `port/` — RNG, jitter, botão, OLED, rádio desligado | **feito e testado** (46 verificações com substitutos do ESP-IDF) |
+| `port/` — RNG, jitter, botão, OLED, rádio desligado | **feito e testado** (51 verificações com substitutos do ESP-IDF) |
 | `main/main.c` — máquina de estados da cerimónia | **compila**; a ordem da cerimónia é verificada por invariante |
 | Verificação anti-rádio no build | **passa** — zero código de Wi-Fi/BT/LoRa ligado |
 | Modo passo a passo do verificador | **feito e testado** (8 casos, incluindo os erros de cópia) |
 | Invariantes do código + mutações | **feito** (39 invariantes, 18 mutações, todas apanhadas) |
 | Testes de saúde da entropia (SP 800-90B) | **feito e testado** — RCT e APT correm durante a recolha |
 | Min-entropia medida da fonte de jitter | **feito** — 1,96 bits/amostra nesta placa; a extração original só via 0,014 (corrigida) |
-| Firmware | **281 424 bytes**, sha256 `7d3fac0f…` |
+| Firmware | **281 472 bytes**, sha256 `8603220a…` |
 | Build reprodutível (Docker + IDF v5.3.2 fixado) | **feito**, por correr |
 | Atestação do que está gravado na placa | **feita** — app e bootloader lidos de volta, hashes iguais |
 
 O que está marcado como testado foi mesmo executado nesta máquina. O firmware
 está gravado na placa e o que lá está foi confirmado byte a byte contra o
-binário compilado (`7d3fac0f…`). **Mas gravar não é o mesmo que funcionar**:
+binário compilado (`8603220a…`). **Mas gravar não é o mesmo que funcionar**:
 a cerimónia ainda não correu de ponta a ponta até ao fim — está em curso.
 O núcleo criptográfico e o verificador, esses, estão testados a sério.
 
@@ -204,7 +204,7 @@ python test/correr_tudo.py
   as invariantes tem dentes (mutacoes)               ok        1.6s
   estimador de min-entropia (SP 800-90B)             ok        3.2s
 
-OK -- a bateria toda passa (947 verificacoes)
+OK -- a bateria toda passa (952 verificacoes)
 ```
 
 O que cada um cobre:
@@ -213,7 +213,7 @@ O que cada um cobre:
 |---|---|
 | [`verify.py --self-test`](tools/verify.py) | 150 verificações contra vetores oficiais. Duas montam o ataque adaptativo do `E_chip` e confirmam que passa sem compromisso e é apanhado com ele |
 | [`test_core.c`](test/test_core.c) | 393 verificações do núcleo: BIP39, BIP32, BIP84, entropia fail-closed, compromisso, fontes com padrões presos |
-| [`test_port.c`](test/test_port.c) | 46 verificações de `port/`, com substitutos do ESP-IDF: TRNG preso, jitter congelado, os testes de saúde RCT/APT, o limpar do acumulador de timing, o framebuffer do OLED, e a temporização exata de `hsv3_buttons_select()` |
+| [`test_port.c`](test/test_port.c) | 51 verificações de `port/`, com substitutos do ESP-IDF: TRNG preso, jitter congelado, os testes de saúde RCT/APT, o limpar do acumulador de timing, o framebuffer do OLED, a temporização exata de `hsv3_buttons_select()`, e rejeição de ruído mais curto que o debounce |
 | [`crosscheck.py`](tools/crosscheck.py) | 275 campos, C contra Python, em cerimónias aleatórias |
 | [`test_verify_interativo.py`](test/test_verify_interativo.py) | 8 casos do modo passo a passo, quase todos erros de cópia reais |
 | [`test_invariantes.py`](test/test_invariantes.py) | 38 propriedades que se lêem no código: a ordem da cerimónia, nenhum `return` mudo, nada em flash, o que cabe no ecrã, a wordlist partilhada, os cortes de saúde |

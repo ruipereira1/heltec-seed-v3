@@ -440,6 +440,87 @@ static void test_buttons_select(void)
        g_n_redraws >= 2 && g_redraws[1] == 0 && r == 0);
 }
 
+/* As tres funcoes deste ficheiro tinham o mesmo buraco: depois do debounce,
+ * nenhuma voltava a confirmar que o botao continuava premido. Um ruido
+ * eletrico mais curto que o debounce -- um bounce do proprio interruptor --
+ * lia-se premido uma vez, o debounce passava, e a funcao seguia em frente
+ * como se fosse um toque a serio.
+ *
+ * O mais grave dos tres e' o hsv3_buttons_count_taps(): a contagem de toques
+ * E' o digito que entra na seed. Um "toque" fantasma aqui nao e' um incomodo
+ * de interface -- e' um bit errado na entropia fisica, sem nenhum aviso.
+ *
+ * GLITCH_MS (10) e' bem mais curto que o debounce real (25ms); PRESS_MS
+ * (150) e' um toque humano normal, bem mais longo. Nao se usa o valor exacto
+ * do debounce de proposito, para o teste nao depender de um afinamento fino
+ * que possa mudar. */
+#define GLITCH_MS 10
+#define PRESS_MS  150
+
+static void test_buttons_debounce(void)
+{
+    hsv3_btn_t ev;
+    int r;
+
+    /* hsv3_buttons_wait(): um glitch sozinho nao pode voltar SHORT nem LONG
+     * -- tem de expirar o timeout e devolver NONE, como se nada tivesse
+     * acontecido. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { GLITCH_MS };
+        stub_agenda_toques(seq, 1);
+    }
+    ev = hsv3_buttons_wait(100);
+    ok("wait: um glitch sozinho nao conta -- expira e devolve NONE",
+       ev == HSV3_BTN_NONE);
+
+    /* Controlo: um toque a serio (150ms, bem mais que o debounce) continua a
+     * ser classificado SHORT, como sempre. A correcao nao pode ter partido o
+     * caminho normal. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { PRESS_MS };
+        stub_agenda_toques(seq, 1);
+    }
+    ev = hsv3_buttons_wait(2000);
+    ok("wait: um toque a serio continua classificado SHORT", ev == HSV3_BTN_SHORT);
+
+    /* hsv3_buttons_select(): um glitch antes do toque a serio nao pode
+     * avancar nem escolher -- so o toque real (aqui, um "manter") e' que
+     * conta. Se o glitch tivesse avancado, isto devolvia 1 em vez de 0. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { GLITCH_MS, 50, HSV3_BTN_SHORT_MAX_MS + 50 };
+        stub_agenda_toques(seq, 3);
+    }
+    g_n_redraws = 0;
+    r = hsv3_buttons_select(5, 0, grava_redraw);
+    ok("select: um glitch antes do gesto real nao avanca nem interfere",
+       r == 0 && g_n_redraws == 1);
+
+    /* hsv3_buttons_count_taps(): o caso que mais importa. Um glitch entre
+     * dois toques reais nao pode contar como um terceiro -- senao entra um
+     * digito a mais na seed. Agenda-se: toque, largar, GLITCH, largar, toque,
+     * silencio ate gravar. Tem de contar 2, nunca 3. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { PRESS_MS, 80, GLITCH_MS, 80, PRESS_MS };
+        stub_agenda_toques(seq, 5);
+    }
+    r = hsv3_buttons_count_taps(300, NULL);
+    ok("count_taps: um glitch entre dois toques reais NAO conta como terceiro",
+       r == 2);
+
+    /* Controlo: sem glitch nenhum, dois toques reais contam mesmo 2. */
+    hsv3_stub_reset();
+    {
+        int seq[] = { PRESS_MS, 80, PRESS_MS };
+        stub_agenda_toques(seq, 3);
+    }
+    r = hsv3_buttons_count_taps(300, NULL);
+    ok("count_taps: dois toques reais, sem glitch, contam 2", r == 2);
+}
+
 int main(void)
 {
     printf("HELTEC-SEED-V3 -- testes do port/ (com substitutos do ESP-IDF)\n\n");
@@ -450,6 +531,7 @@ int main(void)
     test_timing();
     test_oled();
     test_buttons_select();
+    test_buttons_debounce();
 
     printf("\n");
     if (fails) {
