@@ -274,7 +274,7 @@
     </div>
     <div class="meta">
       data ____ / ____ / ________<br>
-      firmware sha256 97f8f41e…
+      firmware sha256 8603220a…
     </div>
   </div>
 
@@ -312,19 +312,32 @@
 
   <!-- 3 --------------------------------------------------------------- -->
   <section class="quebra">
-    <h2><span class="n">3</span> E_chip revelado
+    <h2><span class="n">3</span> E_física revelada
       <span class="quando">depois dos lançamentos</span></h2>
     <p class="como">
-      Agora o aparelho mostra a metade dele em claro. O verificador confirma que
-      o resumo deste valor dá exatamente o que escreveste na secção 1.
-      <strong>Se não der, para.</strong>
+      SHA256 dos 100 dígitos da secção 2. O aparelho mostra-o para confirmares
+      que a tua sequência bate com a dele — se copiaste mal um dígito, é aqui
+      que os dois deixam de bater. O ecrã pede os <strong>dois</strong> valores
+      desta página; este é o primeiro.
     </p>
-    <div id="hex-chip"></div>
+    <div id="hex-fis"></div>
   </section>
 
   <!-- 4 --------------------------------------------------------------- -->
   <section>
-    <h2><span class="n">4</span> As 24 palavras da seed</h2>
+    <h2><span class="n">4</span> E_chip revelado
+      <span class="quando">logo a seguir ao anterior</span></h2>
+    <p class="como">
+      Agora o aparelho mostra a metade dele em claro. O verificador confirma que
+      o resumo deste valor dá exatamente o compromisso que escreveste na
+      secção 1. <strong>Se não der, para.</strong>
+    </p>
+    <div id="hex-chip"></div>
+  </section>
+
+  <!-- 5 --------------------------------------------------------------- -->
+  <section>
+    <h2><span class="n">5</span> As 24 palavras da seed</h2>
     <p class="como">
       Para papel ou metal. <strong>Nunca para o telemóvel.</strong> O aparelho
       faz-te três perguntas a seguir, para confirmar que copiaste mesmo.
@@ -332,9 +345,9 @@
     <div class="palavras" id="palavras-seed"></div>
   </section>
 
-  <!-- 5 --------------------------------------------------------------- -->
+  <!-- 6 --------------------------------------------------------------- -->
   <section class="quebra">
-    <h2><span class="n">5</span> Passphrase</h2>
+    <h2><span class="n">6</span> Passphrase</h2>
     <p class="como">Marca a que escolheste no aparelho.</p>
     <div class="opcoes">
       <div class="opcao"><span class="quadrado"></span>
@@ -352,9 +365,9 @@
     <div style="margin-top:14px" class="palavras" id="palavras-pass"></div>
   </section>
 
-  <!-- 6 --------------------------------------------------------------- -->
+  <!-- 7 --------------------------------------------------------------- -->
   <section>
-    <h2><span class="n">6</span> O que tem de bater certo no Sparrow</h2>
+    <h2><span class="n">7</span> O que tem de bater certo no Sparrow</h2>
     <p class="como">
       Estes dois são a prova final. Restauras as 24 palavras e a passphrase num
       Sparrow <strong>sem internet</strong> e comparas.
@@ -378,12 +391,12 @@
       <code>CONFERIR-A-SEED.bat</code> e responde às perguntas.
     </p>
     <p>
-      <b>2.</b> As 24 palavras que ele imprime têm de ser iguais às da secção 4,
+      <b>2.</b> As 24 palavras que ele imprime têm de ser iguais às da secção 5,
       uma a uma. E ele não pode queixar-se do compromisso.
     </p>
     <p>
       <b>3.</b> O fingerprint e o primeiro endereço do Sparrow têm de ser os da
-      secção 6.
+      secção 7.
     </p>
     <p>
       Se alguma das três não bater — <b>para</b>. Não mandes moedas para nenhum
@@ -425,6 +438,7 @@
       }
     }
     grelhaHex("hex-commit");
+    grelhaHex("hex-fis");
     grelhaHex("hex-chip");
 
     /* 100 lancamentos, dez por linha, com a numeracao a esquerda. Os grupos de
